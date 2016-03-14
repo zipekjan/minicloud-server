@@ -247,9 +247,18 @@ class ApiHandler
 	}
 	
 	public function deleteFile($request) {
-		$id = $request->contents('id');
+		$id = (int)$request->contents('id');
 		
+		$file = $this->api->meta()->getFileById($this->user, $id);
 		
+		if ($file === null) {
+			throw new ApiExcetion("Failed to find file.", 404);
+		}
+		
+		$this->api->storage()->deleteFile($file);
+		$this->api->meta()->deleteFile($file);
+		
+		return true;
 	}
 	
 }
