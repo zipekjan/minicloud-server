@@ -148,7 +148,7 @@ class ApiHandler
 		}
 		
 		// Return file contents
-		return new FileResponse($this->api->storage()->getFile($file, 'rb'));
+		return new FileResponse($this->api->storage()->getFile($file, 'rb'), $file->size());
 	}
 	
 	public function uploadFile($request) {

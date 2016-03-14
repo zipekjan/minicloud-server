@@ -5,17 +5,19 @@
 class FileResponse extends Response
 {
 	protected $file;
+	protected $size;
 	protected $bufferSize = 1024;
 	
-	public function __construct($file, $code = 200) {
+	public function __construct($file, $size, $code = 200) {
 		$this->file = $file;
+		$this->size = $size;
 		$this->code = $code;
 	}
 	
 	public function execute() {
 		header("$this->http $this->code {$this->codeValues[$this->code]}");
 		header("Content-type: $this->type");
-		header("Content-length: " . strlen($this->contents));
+		header("Content-length: " . $this->size);
 		
 		while(!$this->file->eof()) {
 			echo $this->file->read($this->bufferSize);

@@ -100,4 +100,9 @@ class MetaFile
 	public function user() {
 		return $this->user;
 	}
+	
+	public function size() {
+		return $this->size;
+	}
+	
 }
