@@ -12,4 +12,11 @@ interface ContentStorage
 	 * @return ContentStorageFile file
 	 */
 	public function getFile($file, $mode);
+	
+	/**
+	 * Deletes file
+	 *
+	 * @param MetaFile $file
+	 */
+	public function deleteFile($file);
 }

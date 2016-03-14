@@ -17,4 +17,8 @@ class FolderStorage implements ContentStorage
 	public function getFile($file, $mode) {
 		return new FolderStorageFile($this->getPath($file), $mode);
 	}
+	
+	public function deleteFile($file) {
+		return unlink($this->getPath($file));
+	}
 }

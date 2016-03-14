@@ -23,10 +23,9 @@ class ApiHandler
 			
 			'get_file' => new ApiHandlerAction('getFile', 'file'),
 			'set_file' => new ApiHandlerAction('setFile', 'file'),
-			
+			'delete_file' => new ApiHandlerAction('deleteFile', 'bool'),
 			'download_file' => new ApiHandlerAction('downloadFile'),
-			
-			'upload_file' => new ApiHandlerAction('uploadFile', 'files')
+			'upload_file' => new ApiHandlerAction('uploadFile', 'files'),
 		);
 	}
 	
@@ -96,6 +95,7 @@ class ApiHandler
 		// Load requested path string
 		$path = $request->contents('path');
 		$id = $request->contents('id');
+		$recursive = $request->contents('recursive', false);
 		
 		// Load metapath object
 		if ($id !== null) {
@@ -244,6 +244,12 @@ class ApiHandler
 
 		// Respond with file list
 		return $result;
+	}
+	
+	public function deleteFile($request) {
+		$id = $request->contents('id');
+		
+		
 	}
 	
 }

@@ -66,8 +66,9 @@ class DBOMetaStorage implements MetaStorage
 	 * Loads all children for specified path
 	 *
 	 * @param MetaPath $parent
+	 * @param bool $recursive OPTIONAl (default false)
 	 */
-	protected function loadChildren($parent) {
+	protected function loadChildren($parent, $recursive = false) {
 		// Get parent user
 		$user = $parent->user();
 		$id = $user->id();
@@ -119,6 +120,13 @@ class DBOMetaStorage implements MetaStorage
 		
 		while($row = $prep->fetch()) {
 			$parent->addFile($this->fileFromRow($user, $row, $parent));
+		}
+		
+		// Load subdirectories if required
+		if ($recursive) {
+			foreach($parent->files() as $file) {
+				$this->loadChildren($file, $recursive);
+			}
 		}
 		
 		// Return isn't required, but looks nice
@@ -188,7 +196,7 @@ class DBOMetaStorage implements MetaStorage
 		return $path;
 	}
 	
-	public function getPath($user, $path = null) {
+	public function getPath($user, $path = null, $recursive = false) {
 		$id = $user->id();
 		
 		if ($path) {
@@ -202,10 +210,10 @@ class DBOMetaStorage implements MetaStorage
 		if (!$data)
 			return null;
 
-		return $this->loadChildren($this->pathFromRow($user, $data));
+		return $this->loadChildren($this->pathFromRow($user, $data), $recursive);
 	}
 	
-	public function getPathById($user, $path_id) {
+	public function getPathById($user, $path_id, $recursive = false) {
 		$id = $user->id();
 		
 		$prep = $this->pdo->prepare("SELECT * FROM {$this->pathsTable} WHERE user_id = ? AND id = ?");
@@ -215,7 +223,7 @@ class DBOMetaStorage implements MetaStorage
 		if (!$row)
 			return null;
 		
-		return $this->loadChildren($this->pathFromRow($user, $row));
+		return $this->loadChildren($this->pathFromRow($user, $row), $recursive);
 	}
 	
 	public function getFile($user, $path) {

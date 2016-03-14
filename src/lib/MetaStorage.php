@@ -19,7 +19,7 @@ interface MetaStorage
 	 * @param string $path path to fetch
 	 * @returm MetaPath
 	 */
-	public function getPath($user, $path = null);
+	public function getPath($user, $path = null, $recursive = false);
 	
 	/**
 	 * Saves user data

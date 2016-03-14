@@ -60,7 +60,8 @@ class Api
 			'name' => $this->config('name'),
 			'description' => $this->config('description'),
 			'logo' => $this->config('logo'),
-			'nice_url' => $this->config('nice_url')
+			'nice_url' => $this->config('nice_url'),
+			'time' => time()
 		);
 	}
 }
