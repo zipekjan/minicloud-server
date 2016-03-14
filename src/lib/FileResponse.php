@@ -17,10 +17,10 @@ class FileResponse extends Response
 		header("Content-type: $this->type");
 		header("Content-length: " . strlen($this->contents));
 		
-		while(!$file->eof()) {
-			echo $file->read($this->bufferSize);
+		while(!$this->file->eof()) {
+			echo $this->file->read($this->bufferSize);
 		}
 		
-		$file->close();
+		$this->file->close();
 	}
 }

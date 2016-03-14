@@ -33,12 +33,12 @@ interface MetaStorage
 	 *
 	 * @param MetaFile $file
 	 */
-	public function setFile($file);
+	public function setFile($user, $file);
 	
 	/**
 	 * Saves folder data
 	 *
 	 * @param MetaFolder $folder
 	 */
-	public function setFolder($folder);
+	public function setFolder($user, $folder);
 }

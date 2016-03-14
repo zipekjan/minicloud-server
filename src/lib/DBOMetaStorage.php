@@ -5,7 +5,7 @@ class DBOMetaStorage implements MetaStorage
 	
 	protected $usersTable = 'users';
 	protected $filesTable = 'files';
-	protected $foldersTable = 'folders';
+	protected $pathsTable = 'paths';
 	
 	public function __construct($api) {
 		$this->api = $api;
@@ -18,8 +18,8 @@ class DBOMetaStorage implements MetaStorage
 	
 	protected function getDNS($config) {
 		return "{$config['driver']}:host={$config['host']}" .
-			((!empty($options['port'])) ? (';port=' . $options['port']) : '') .
-			";dbname={$options['schema']}";
+			((!empty($config['port'])) ? (';port=' . $config['port']) : '') .
+			";dbname={$config['schema']}";
 	}
 	
 	/**
@@ -33,19 +33,17 @@ class DBOMetaStorage implements MetaStorage
 	protected function fileFromRow($user, $row, $parent = null) {
 		// Autoload parent metapath
 		if ($parent != null) {
-			$row['folder_id'] = $parent;
-		} elseif ($row['folder_id'] && is_numeric($row['folder_id'])) {
-			$row['folder_id'] = $this->getPathById($user, $row['folder_id']);
+			$row['path_id'] = $parent;
+		} elseif ($row['path_id'] && is_numeric($row['path_id'])) {
+			$row['path_id'] = $this->getPathById($user, $row['path_id']);
 		}
 		
 		// Remap meta array
 		$data = $row;
 		$data['user'] = $user;
-		$data['path'] = $row['folder_id'];
-		$data['mktime'] = $row['created'];
-		$data['mdtime'] = $row['updated'];
-		
-		return new MetaFile($row);
+		$data['path'] = $row['path_id'];
+
+		return new MetaFile($data);
 	}
 	
 	/**
@@ -58,10 +56,8 @@ class DBOMetaStorage implements MetaStorage
 	protected function pathFromRow($user, $row) {
 		// Remap meta array
 		$data = $row;
-		$data['parent'] = $row['folder_id'];
+		$data['parent'] = $row['parent_id'];
 		$data['user'] = $user;
-		$data['mktime'] = $row['created'];
-		$data['mdtime'] = $row['updated'];
 		
 		return new MetaPath($data);
 	}
@@ -74,20 +70,54 @@ class DBOMetaStorage implements MetaStorage
 	protected function loadChildren($parent) {
 		// Get parent user
 		$user = $parent->user();
+		$id = $user->id();
+		$parent_id = $parent->meta('id');
 		
 		// Load folders
-		$prep = $this->pdo->prepare("SELECT * FROM {$this->foldersTable} WHERE user_id = ? AND folder_id = ?");
-		$prep->execute(array($id, $parent->meta('id')));
 		
-		while($row = $prep->fetchArray()) {
+		// Prepare query
+		if ($parent_id === null) {
+			$prep = $this->pdo->prepare("SELECT * FROM {$this->pathsTable} WHERE user_id = ? AND parent_id is NULL");
+		} else {
+			$prep = $this->pdo->prepare("SELECT * FROM {$this->pathsTable} WHERE user_id = ? AND parent_id = ?");
+		}
+		
+		// Bind values
+		$prep->bindValue(1, $id);
+		if ($parent_id !== null) {
+			$prep->bindValue(2, $parent->meta('id'), PDO::PARAM_INT);
+		}
+		
+		// Run the query
+		if (!$prep->execute()) {
+			throw new Exception("Failed to execute paths query.");
+		}
+		
+		while($row = $prep->fetch()) {
 			$parent->addPath($this->pathFromRow($user, $row));
 		}
 		
 		// Load files
-		$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ? AND folder_id = ?");
-		$prep->execute(array($id, $parent->meta('id')));
 		
-		while($row = $prep->fetchArray()) {
+		// Prepare query
+		if ($parent_id === null) {
+			$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ? AND path_id is NULL");
+		} else {
+			$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ? AND path_id = ?");
+		}
+
+		// Bind values
+		$prep->bindValue(1, $id);
+		if ($parent_id !== null) {
+			$prep->bindValue(2, $parent->meta('id'), PDO::PARAM_INT);
+		}
+		
+		// Run the query
+		if (!$prep->execute()) {
+			throw new Exception("Failed to execute files query.");
+		}
+		
+		while($row = $prep->fetch()) {
 			$parent->addFile($this->fileFromRow($user, $row, $parent));
 		}
 		
@@ -97,10 +127,15 @@ class DBOMetaStorage implements MetaStorage
 	
 	public function getUser($hash) {
 		//@TODO: Maybe use something random to make hash different everytime
-		$prep = $this->pdo->prepare("SELECT * FROM {$this->usersTable} WHERE SHA2(CONCAT(login, password), 256) = ?");
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->usersTable} WHERE SHA2(CONCAT(name, password), 256) = ?");
 		$prep->execute(array($hash));
 		
-		return $prep->fetchObject();
+		$data = $prep->fetch();
+		if ($data) {
+			return new MetaUser($data);
+		}
+		
+		return null;
 	}
 	
 	public function setUser($user) {
@@ -139,37 +174,48 @@ class DBOMetaStorage implements MetaStorage
 		return $user->serialize();
 	}
 	
+	private function sanitizePath($path) {
+		$path = preg_replace('/\/{2,}/', "/", $path);
+		
+		if (substr($path, 0, 1) == "/") {
+			$path = substr($path, 1);
+		}
+		
+		if (substr($path, strlen($path) - 1, 1) == "/") {
+			$path = substr($path, 0, strlen($path) - 1);
+		}
+		
+		return $path;
+	}
+	
 	public function getPath($user, $path = null) {
 		$id = $user->id();
 		
-		$parent = new MetaPath(null, $user, null, array('id' => null));
-		
-		if ($path != null) {
-			$prep = $this->pdo->prepare("SELECT * FROM {$this->foldersTable} WHERE user_id = ? AND path = ?");
-			$prep->execute(array($id, $path));
-			$data = $prep->fetchObject();
-			$parent = new MetaPath($data['id'], $user, $path, $data);
-			
-			if (!$data)
-				return null;
+		if ($path) {
+			$path = $this->sanitizePath($path);
 		}
-		
-		return $this->loadChildren($parent);
+
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->pathsTable} WHERE user_id = ? AND path = ?");
+		$prep->execute(array($id, (string)$path));
+		$data = $prep->fetch();
+
+		if (!$data)
+			return null;
+
+		return $this->loadChildren($this->pathFromRow($user, $data));
 	}
 	
 	public function getPathById($user, $path_id) {
 		$id = $user->id();
 		
-		$prep = $this->pdo->prepare("SELECT * FROM {$this->foldersTable} WHERE user_id = ? AND id = ?");
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->pathsTable} WHERE user_id = ? AND id = ?");
 		$prep->execute(array($id, $path_id));
-		$row = $prep->fetchObject();
+		$row = $prep->fetch();
 		
 		if (!$row)
 			return null;
 		
-		$parent = $this->pathFromRow($user, $row);
-		
-		return $this->loadChildren($parent);
+		return $this->loadChildren($this->pathFromRow($user, $row));
 	}
 	
 	public function getFile($user, $path) {
@@ -181,7 +227,7 @@ class DBOMetaStorage implements MetaStorage
 		
 		$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ? AND id = ?");
 		$prep->execute(array($id, $file_id));
-		$row = $prep->fetchObject();
+		$row = $prep->fetch();
 		
 		if (!$row)
 			return null;
@@ -189,13 +235,16 @@ class DBOMetaStorage implements MetaStorage
 		return $this->fileFromRow($user, $row);
 	}
 	
-	public function setFile($file) {
+	public function deleteFile($user, $file) {
+		$id = $user->id();
+		
+		$prep = $this->pdo->prepare("DELETE FROM {$this->filesTable} WHERE user_id = ? AND id = ? LIMIT 1");
+		return $prep->execute(array($id, $file->id()));
+	}
+	
+	public function setFile($user, $file) {
 		// Values which have different column name
-		$keymap = array(
-			'path_id' => 'folder_id',
-			'mktime' => 'created',
-			'mdtime' => 'updated'
-		);
+		$keymap = array();
 		
 		// Values which shouldn't be saved to DB
 		$skipped = array(
@@ -218,7 +267,7 @@ class DBOMetaStorage implements MetaStorage
 			
 			// Add parent
 			if ($file->path) {
-				$update['folder_id'] = $file->path->meta('id');
+				$update['path_id'] = $file->path()->meta('id');
 			}
 			
 			// Useless
@@ -230,7 +279,7 @@ class DBOMetaStorage implements MetaStorage
 			foreach($update as $key => $value) {
 				if (isset($skipped[$key]))
 					continue;
-					
+
 				if (isset($keymap[$key]))
 					$key = $keymap[$key];
 				
@@ -240,9 +289,10 @@ class DBOMetaStorage implements MetaStorage
 			
 			// Add file ID for final condition
 			$update_values[] = $id;
+			$update_values[] = $user->id();
 			
 			// Run query
-			$prep = $this->pdo->prepare("UPDATE {$this->filesTable} SET " . implode(", ", $update_keys) . " WHERE id = ?");
+			$prep = $this->pdo->prepare("UPDATE {$this->filesTable} SET " . implode(", ", $update_keys) . " WHERE id = ? AND user_id = ?");
 			$prep->execute($update_values);
 			
 			return $file;
@@ -252,7 +302,7 @@ class DBOMetaStorage implements MetaStorage
 			$insert = $file->serialize();
 			
 			// Add user id (only required for insert)
-			$insert['user_id'] = $insert->user()->id();
+			$insert['user_id'] = $file->user()->id();
 			
 			// Prepare query data
 			$insert_keys = array();
@@ -273,10 +323,13 @@ class DBOMetaStorage implements MetaStorage
 			
 			// Run the damned query
 			$prep = $this->pdo->prepare("INSERT INTO {$this->filesTable} (" . implode(", ", $insert_keys) . ") VALUES (" . implode(", ", $insert_thumbs) . ")");
-			$prep->execute($insert_values);
+			if (!$prep->execute($insert_values)) {
+				print_r($prep->errorInfo());
+				throw new Exception("Failed to save file.");
+			}
 			
 			// Save DB id, for later use
-			$file->set(array('id' => $this->pdo->lastInsertId));
+			$file->set(array('id' => $this->pdo->lastInsertId()));
 			
 			// Return saved file
 			return $file;
@@ -284,7 +337,7 @@ class DBOMetaStorage implements MetaStorage
 		
 	}
 	
-	public function setFolder($folder) {
+	public function setFolder($user, $folder) {
 		
 	}
 }

@@ -32,7 +32,7 @@ class Response
 		if ($this->contents instanceof ResponseObject)
 			$this->contents = json_encode($this->contents->serialize());
 		
-		if (!is_string($this->contents))
+		if ($this->contents !== null && !is_string($this->contents))
 			$this->contents = json_encode($this->contents);
 	}
 	
@@ -43,6 +43,8 @@ class Response
 		header("$this->http $this->code {$this->codeValues[$this->code]}");
 		header("Content-type: $this->type");
 		header("Content-length: " . strlen($this->contents));
-		echo $contents;
+		
+		if ($this->contents !== null)
+			echo $this->contents;
 	}
 }

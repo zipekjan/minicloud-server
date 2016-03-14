@@ -14,7 +14,7 @@ return array(
 	'database' => array(
 		'driver' => 'mysql',
 		'host' => '127.0.0.1',
-		'schema' => 'bp-test-db',
+		'schema' => 'minicloud',
 		'username' => 'root',
 		'password' => ''
 	)

@@ -5,6 +5,9 @@ class Api
 	protected $config = array();
 	protected $handler = null;
 	
+	protected $meta;
+	protected $storage;
+	
 	public function __construct($config_file = './config.php') {
 		$this->loadConfig($config_file);
 		$this->handler = new ApiHandler();
@@ -14,8 +17,20 @@ class Api
 		$this->configFile = $config_file;
 		$this->config = require_once($config_file);
 		
-		$this->meta = new {$this->config('meta')}($this);
-		$this->storage = new {$this->config('storage')}($this);
+		try {
+			$meta = new ReflectionClass($this->config('meta'));
+		} catch(Exception $e) {
+			throw new Exception("Failed to load meta storage {$this->config('meta')}: $e");
+		}
+		
+		try {
+			$storage = new ReflectionClass($this->config('storage'));
+		} catch(Exception $e) {
+			throw new Exception("Failed to load data storage {$this->config('storage')}: $e");
+		}
+		
+		$this->meta = $meta->newInstance($this);
+		$this->storage = $storage->newInstance($this);
 	}
 	
 	public function config($key) {
@@ -27,11 +42,17 @@ class Api
 	public function handle($request) {
 		$this->request = $request;
 		
-		$user = $this->meta->getUser($this->request->auth());
-		if ($user === null)
-			return new Response(null, 401);
+		$user = $this->meta()->getUser($this->request->auth());
 		
 		return $this->handler->handle($this, $user, $this->request);
+	}
+	
+	public function meta() {
+		return $this->meta;
+	}
+	
+	public function storage() {
+		return $this->storage;
 	}
 	
 	public function getInfo() {

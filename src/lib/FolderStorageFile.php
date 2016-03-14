@@ -22,9 +22,11 @@ class FolderStorageFile implements ContentStorageFile
 	
 	public function close() {
 		fclose($this->handle);
+		$this->handle = null;
 	}
 	
 	public function __destruct() {
-		$this->close();
+		if ($this->handle)
+			$this->close();
 	}
 }

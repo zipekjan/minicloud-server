@@ -27,6 +27,7 @@ class MetaPath
 		$data = new ArrayWrapper($meta);
 		
 		if (!$restricted) {
+			$this->id = $data->get('id', $this->id);
 			$this->user = $data->get('user', $this->user);
 			$this->path = $data->get('path', $this->path);
 			$this->checksum = $data->get('checksum', $this->checksum);

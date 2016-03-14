@@ -11,26 +11,7 @@ $config = "src/config.php";
 $dist = "dist/";
 
 // Files to be included
-$files = array(
-	'lib/ArrayWrapper.php',
-	'lib/Api.php',
-    'lib/ApiException.php',
-    'lib/ApiHandler.php',
-    'lib/ApiHandlerAction.php',
-    'lib/ApiResponse.php',
-    'lib/MetaFile.php',
-    'lib/MetaPath.php',
-    'lib/MetaStorage.php',
-    'lib/MetaUser.php',
-    'lib/ContentStorage.php',
-    'lib/Request.php',
-    'lib/RequestFile.php',
-    'lib/Response.php',
-    'lib/FileResponse.php',
-    'lib/DBOMetaStorage.php',
-    'lib/FolderStorage.php',
-    'main.php'
-);
+$files = explode("\n", file_get_contents("build.files"));
 
 // Join the files
 $contents = "<?php";

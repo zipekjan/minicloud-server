@@ -110,4 +110,25 @@ class Request
 		
 		return isset($this->contents[$key]) ? $this->contents[$key] : $default;
 	}
+	
+	public function method() {
+		return $this->method;
+	}
+
+	public function action() {
+		return $this->action;
+	}
+
+	public function uri() {
+		return $this->uri;
+	}
+
+	public function type() {
+		return $this->type;
+	}
+
+	public function files() {
+		return $this->files;
+	}
+
 }

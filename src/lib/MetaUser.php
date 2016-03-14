@@ -65,7 +65,6 @@ class MetaUser
 			'id' => $this->id,
 			'name' => $this->name,
 			'email' => $this->email,
-			'password' => $this->password,
 			'key' => $this->key,
 			'admin' => $this->admin
 		);

@@ -7,6 +7,9 @@ class MetaFile
 	///@var mixed $id file identifier
 	protected $id;
 	
+	///@var MetaUser $user file owner
+	protected $user;
+	
 	///@var string $filename name of this file
 	protected $filename;
 	
@@ -43,7 +46,7 @@ class MetaFile
 			$this->user = $data->get('user', $this->user);
 			$this->size = $data->get('size', $this->size);
 			$this->checksum = $data->get('checksum', $this->checksum);
-			$this->meta = $data;
+			$this->meta = $meta;
 		}
 		
 		// These can be updated by user

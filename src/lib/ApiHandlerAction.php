@@ -4,16 +4,16 @@ class ApiHandlerAction
 	protected $method;
 	protected $response;
 	
-	public function __construct($method, $respose = null) {
+	public function __construct($method, $response = null) {
 		$this->method = $method;
-		$this->respose = $response;
+		$this->response = $response;
 	}
 	
 	public function method() {
-		return $method;
+		return $this->method;
 	}
 	
-	public function respose() {
-		return $respose;
+	public function response() {
+		return $this->response;
 	}
 }
