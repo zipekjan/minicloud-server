@@ -22,14 +22,14 @@ class MetaUser
 		$data = new ArrayWrapper($meta);
 		
 		if (!$restricted) {
-			$this->id = $data->get('id');
-			$this->name = $data->get('name');
-			$this->admin = $data->get('admin');
+			$this->id = $data->get('id', $this->id);
+			$this->name = $data->get('name', $this->name);
+			$this->admin = $data->get('admin', $this->admin);
 		}
 		
-		$this->email = $data->get('email');
-		$this->password = $data->get('password');
-		$this->key = $data->get('key');
+		$this->email = $data->get('email', $this->email);
+		$this->password = $data->get('password', $this->password);
+		$this->key = $data->get('key', $this->key);
 		
 		$this->meta = $meta;
 	}

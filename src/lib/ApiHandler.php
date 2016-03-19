@@ -24,6 +24,7 @@ class ApiHandler
 			'get_file' => new ApiHandlerAction('getFile', 'file'),
 			'set_file' => new ApiHandlerAction('setFile', 'file'),
 			'delete_file' => new ApiHandlerAction('deleteFile', 'bool'),
+			'delete_files' => new ApiHandlerAction('deleteFiles', 'bool'),
 			'download_file' => new ApiHandlerAction('downloadFile'),
 			'upload_file' => new ApiHandlerAction('uploadFile', 'files'),
 		);
@@ -158,6 +159,12 @@ class ApiHandler
 		// Used to override existing files
 		$replace = $request->contents('replace');
 		
+		// Used to send checksums
+		$checksums = $request->contents('checksum');
+		
+		// Used to send encryption info
+		$encryptions = $request->contents('encryption');
+		
 		// Load metapath object
 		$path = $this->api->meta()->getPath($this->user, $path);
 		
@@ -172,6 +179,9 @@ class ApiHandler
 		// Save each file in request
 		foreach($request->files() as $ident => $file) {
 			$replacing = false;
+			
+			$encryption = isset($encryptions[$ident]) ? $encryptions[$ident] : null;
+			$checksum = isset($checksums[$ident]) ? $checksums[$ident] : null;
 			
 			// Skip broken files
 			if ($file->error !== null) {
@@ -207,7 +217,9 @@ class ApiHandler
 					'mktime' => time(),
 					'mdtime' => time(),
 					'path' => $path,
-					'user' => $this->user
+					'user' => $this->user,
+					'encryption' => $encryption,
+					'checksum' => $checksum
 				));
 				
 			}
@@ -245,7 +257,7 @@ class ApiHandler
 		// Respond with file list
 		return $result;
 	}
-	
+		
 	public function deleteFile($request) {
 		$id = (int)$request->contents('id');
 		
@@ -255,8 +267,29 @@ class ApiHandler
 			throw new ApiExcetion("Failed to find file.", 404);
 		}
 		
+		$this->api->meta()->deleteFile($this->user, $file);
 		$this->api->storage()->deleteFile($file);
-		$this->api->meta()->deleteFile($file);
+		
+		return true;
+	}
+	
+	public function deleteFiles($request) {
+		$files = $request->contents('files');
+
+		if ($files === null || !is_array($files)) {
+			throw new ApiExcetion("No file specified.", 400);
+		}
+		
+		foreach($files as $id) {
+			$file = $this->api->meta()->getFileById($this->user, $id);
+			
+			if ($file === null) {
+				throw new ApiExcetion("Failed to find file.", 404);
+			}
+			
+			$this->api->meta()->deleteFile($this->user, $file);
+			$this->api->storage()->deleteFile($file);
+		}
 		
 		return true;
 	}

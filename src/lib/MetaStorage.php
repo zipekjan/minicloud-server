@@ -31,13 +31,23 @@ interface MetaStorage
 	/**
 	 * Saves file data
 	 *
+	 * @param MetaUser $user
 	 * @param MetaFile $file
 	 */
 	public function setFile($user, $file);
 	
 	/**
+	 * Deletes file from meta storage
+	 *
+	 * @param MetaUser $user
+	 * @param MetaFile $file
+	 */
+	public function deleteFile($user, $file);
+	
+	/**
 	 * Saves folder data
 	 *
+	 * @param MetaUser $user
 	 * @param MetaFolder $folder
 	 */
 	public function setFolder($user, $folder);

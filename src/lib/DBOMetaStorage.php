@@ -156,11 +156,6 @@ class DBOMetaStorage implements MetaStorage
 		// Get basic values
 		$update = $user->serialize();
 		
-		// Add meta values
-		foreach($user->meta() as $key => $value) {
-			$update[$key] = $value;
-		}
-		
 		// Useless
 		unset($update['id']);
 		
@@ -168,13 +163,13 @@ class DBOMetaStorage implements MetaStorage
 		$update_keys = array();
 		$update_values = array();
 		foreach($update as $key => $value) {
-			$update_keys[] = "$key = ?";
+			$update_keys[] = "`$key` = ?";
 			$update_values[] = $value;
 		}
 		
 		// Add file ID for final condition
 		$update_values[] = $id;
-		
+
 		// Run query
 		$prep = $this->pdo->prepare("UPDATE {$this->usersTable} SET " . implode(", ", $update_keys) . " WHERE id = ?");
 		$prep->execute($update_values);
@@ -291,7 +286,7 @@ class DBOMetaStorage implements MetaStorage
 				if (isset($keymap[$key]))
 					$key = $keymap[$key];
 				
-				$update_keys[] = "$key = ?";
+				$update_keys[] = "`$key` = ?";
 				$update_values[] = $value;
 			}
 			
@@ -324,7 +319,7 @@ class DBOMetaStorage implements MetaStorage
 				if (isset($keymap[$key]))
 					$key = $keymap[$key];
 				
-				$insert_keys[] = "$key";
+				$insert_keys[] = "`$key`";
 				$insert_thumbs[] = "?";
 				$insert_values[] = $value;
 			}
