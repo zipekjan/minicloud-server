@@ -3,6 +3,49 @@
  * Script to join API code to single file for distribution
  */
 
+/**
+ * Copy a file, or recursively copy a folder and its contents
+ * @author      Aidan Lister <aidan@php.net>
+ * @version     1.0.1
+ * @link        http://aidanlister.com/2004/04/recursively-copying-directories-in-php/
+ * @param       string   $source    Source path
+ * @param       string   $dest      Destination path
+ * @param       string   $permissions New folder creation permissions
+ * @return      bool     Returns true on success, false on failure
+ */
+function xcopy($source, $dest, $permissions = 0755) {
+    // Check for symlinks
+    if (is_link($source)) {
+        return symlink(readlink($source), $dest);
+    }
+
+    // Simple copy for a file
+    if (is_file($source)) {
+        return copy($source, $dest);
+    }
+
+    // Make destination directory
+    if (!is_dir($dest)) {
+        mkdir($dest, $permissions);
+    }
+
+    // Loop through the folder
+    $dir = dir($source);
+    while (false !== $entry = $dir->read()) {
+        // Skip pointers
+        if ($entry == '.' || $entry == '..') {
+            continue;
+        }
+
+        // Deep copy directories
+        xcopy("$source/$entry", "$dest/$entry", $permissions);
+    }
+
+    // Clean up
+    $dir->close();
+    return true;
+}
+ 
 // Path to source files
 $src = "src/";
 $config = "src/config.php";
@@ -34,7 +77,7 @@ foreach($files as $file) {
 		}
 	}
 	
-	// Apped this file
+	// Append this file
 	$contents .= implode("\n", $lines) . "\n";
 	
 }
@@ -44,3 +87,9 @@ file_put_contents("$dist/api.php", $contents);
 
 // Copy config template
 copy($config, "$dist/config.php");
+
+// Copy installation procedure
+xcopy("$src/install", $dist);
+
+// Copy htaccess
+copy("$src/.htaccess", "$dist/.htaccess");

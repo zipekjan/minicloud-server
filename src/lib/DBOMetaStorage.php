@@ -227,7 +227,7 @@ class DBOMetaStorage implements MetaStorage
 		throw new Exception("Not yet implemented.");
 	}
 	
-	public function getFileById($user, $file_id) {
+	public function getFileById($user, $file_id, $parent = true) {
 		$id = null;
 		if ($user != null) {
 			$id = $user->id();
@@ -249,7 +249,7 @@ class DBOMetaStorage implements MetaStorage
 			return null;
 		}
 		
-		return $this->fileFromRow($user, $row, $user !== null ? null : false);
+		return $this->fileFromRow($user, $row, $user !== null && $parent ? null : false);
 	}
 	
 	public function deleteFile($user, $file) {
@@ -271,19 +271,22 @@ class DBOMetaStorage implements MetaStorage
 		
 		// Either we're creating or updating
 		if ($file->meta('id')) {
+
 			// Used to identify file in DB
 			$id = $file->meta('id');
 			
 			// Get basic file values
 			$update = $file->serialize();
 			
+			/*
 			// Add meta values
 			foreach($file->meta() as $key => $value) {
 				$update[$key] = $value;
 			}
+			*/
 			
 			// Add parent
-			if ($file->path) {
+			if ($file->path()) {
 				$update['path_id'] = $file->path()->meta('id');
 			}
 			

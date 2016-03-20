@@ -50,6 +50,9 @@ class MetaFile
 	///@var string $checksum file md5 checksum
 	protected $checksum;
 	
+	///@var bool $isPublic is file shareable
+	protected $isPublic;
+	
 	///@var array $meta meta data specific for meta storage
 	protected $meta = array();
 		
@@ -59,10 +62,10 @@ class MetaFile
 	
 	public function set($meta, $restricted = false) {
 		$data = new ArrayWrapper($meta);
-		
+
 		// These can't be updated by user
 		if (!$restricted) {
-			$this->id = $data->get('id', $this->id);
+			$this->id = (int)$data->get('id', $this->id);
 			$this->user = $data->get('user', $this->user);
 			$this->size = $data->get('size', $this->size);
 			$this->checksum = $data->get('checksum', $this->checksum);
@@ -73,8 +76,9 @@ class MetaFile
 		$this->path = $data->get('path', $this->path);
 		$this->filename = $data->get('filename', $this->filename);
 		$this->encryption = $data->get('encryption', $this->encryption);
-		$this->mktime = $data->get('mktime', $this->mktime);
-		$this->mdtime = $data->get('mdtime', $this->mdtime);
+		$this->mktime = (int)$data->get('mktime', $this->mktime);
+		$this->mdtime = (int)$data->get('mdtime', $this->mdtime);
+		$this->isPublic = (int)$data->get('public', $this->isPublic);
 		
 		return $this;
 	}
@@ -104,6 +108,7 @@ class MetaFile
 			'encryption' => $this->encryption,
 			'mktime' => $this->mktime,
 			'mdtime' => $this->mdtime,
+			'public' => $this->isPublic,
 			'path' => $this->path->path(),
 			'path_id' => $this->path->id()
 		);
@@ -113,6 +118,10 @@ class MetaFile
 		return $this->id;
 	}
 	
+	public function filename() {
+		return $this->filename;
+	}
+	
 	public function path() {
 		return $this->path;
 	}
@@ -120,6 +129,19 @@ class MetaFile
 	public function user() {
 		return $this->user;
 	}
+	
+	public function size() {
+		return $this->size;
+	}
+	
+	public function isPublic() {
+		return $this->isPublic;
+	}
+	
+	public function checksum() {
+		return $this->checksum;
+	}
+	
 }
 
 /**
@@ -252,7 +274,7 @@ interface MetaStorage
 	 * @param string $path path to fetch
 	 * @returm MetaPath
 	 */
-	public function getPath($user, $path = null);
+	public function getPath($user, $path = null, $recursive = false);
 	
 	/**
 	 * Saves user data
@@ -264,13 +286,23 @@ interface MetaStorage
 	/**
 	 * Saves file data
 	 *
+	 * @param MetaUser $user
 	 * @param MetaFile $file
 	 */
 	public function setFile($user, $file);
 	
 	/**
+	 * Deletes file from meta storage
+	 *
+	 * @param MetaUser $user
+	 * @param MetaFile $file
+	 */
+	public function deleteFile($user, $file);
+	
+	/**
 	 * Saves folder data
 	 *
+	 * @param MetaUser $user
 	 * @param MetaFolder $folder
 	 */
 	public function setFolder($user, $folder);
@@ -300,14 +332,14 @@ class MetaUser
 		$data = new ArrayWrapper($meta);
 		
 		if (!$restricted) {
-			$this->id = $data->get('id');
-			$this->name = $data->get('name');
-			$this->admin = $data->get('admin');
+			$this->id = $data->get('id', $this->id);
+			$this->name = $data->get('name', $this->name);
+			$this->admin = $data->get('admin', $this->admin);
 		}
 		
-		$this->email = $data->get('email');
-		$this->password = $data->get('password');
-		$this->key = $data->get('key');
+		$this->email = $data->get('email', $this->email);
+		$this->password = $data->get('password', $this->password);
+		$this->key = $data->get('key', $this->key);
 		
 		$this->meta = $meta;
 	}
@@ -363,6 +395,46 @@ interface ContentStorage
 	 * @return ContentStorageFile file
 	 */
 	public function getFile($file, $mode);
+	
+	/**
+	 * Deletes file
+	 *
+	 * @param MetaFile $file
+	 */
+	public function deleteFile($file);
+}
+
+/**
+ * Represents file in content storage
+ */
+interface ContentStorageFile
+{
+	/**
+	 * Reads contents of specified length
+	 *
+	 * @param int $length length to be red
+	 * @return string data
+	 */
+	public function read($length);
+	
+	/**
+	 * Writes data to file
+	 *
+	 * @param string $data data to be written
+	 */
+	public function write($data);
+	
+	/**
+	 * Returns if pointer is at EOF. For reading only.
+	 *
+	 * @return bool is pointer at EOF
+	 */
+	public function eof();
+	
+	/**
+	 * Closes file
+	 */
+	public function close();
 }
 
 /**
@@ -597,23 +669,27 @@ class Response
 class FileResponse extends Response
 {
 	protected $file;
+	protected $filename;
+	protected $size;
 	protected $bufferSize = 1024;
 	
-	public function __construct($file, $code = 200) {
+	public function __construct($file, $filename, $size, $code = 200) {
 		$this->file = $file;
+		$this->filename = $filename;
+		$this->size = $size;
 		$this->code = $code;
 	}
 	
 	public function execute() {
 		header("$this->http $this->code {$this->codeValues[$this->code]}");
-		header("Content-type: $this->type");
-		header("Content-length: " . strlen($this->contents));
+		header("Content-Length: " . $this->size);
+		header('Content-Disposition: attachment; filename="' . $this->filename . '"');
 		
-		while(!$file->eof()) {
-			echo $file->read($this->bufferSize);
+		while(!$this->file->eof()) {
+			echo $this->file->read($this->bufferSize);
 		}
 		
-		$file->close();
+		$this->file->close();
 	}
 }
 
@@ -645,15 +721,17 @@ class DBOMetaStorage implements MetaStorage
 	 *
 	 * @param MetaUser $user owner
 	 * @param array $row data
-	 * @param MetaPath $parent OPTIONAL parent object (prevents autoload)
+	 * @param MetaPath $parent OPTIONAL parent object, false to stop autoload
 	 * @return MetaFile
 	 */
 	protected function fileFromRow($user, $row, $parent = null) {
 		// Autoload parent metapath
-		if ($parent != null) {
-			$row['path_id'] = $parent;
-		} elseif ($row['path_id'] && is_numeric($row['path_id'])) {
-			$row['path_id'] = $this->getPathById($user, $row['path_id']);
+		if ($parent !== false) {
+			if ($parent != null) {
+				$row['path_id'] = $parent;
+			} elseif ($row['path_id'] && is_numeric($row['path_id'])) {
+				$row['path_id'] = $this->getPathById($user, $row['path_id']);
+			}
 		}
 		
 		// Remap meta array
@@ -684,8 +762,9 @@ class DBOMetaStorage implements MetaStorage
 	 * Loads all children for specified path
 	 *
 	 * @param MetaPath $parent
+	 * @param bool $recursive OPTIONAl (default false)
 	 */
-	protected function loadChildren($parent) {
+	protected function loadChildren($parent, $recursive = false) {
 		// Get parent user
 		$user = $parent->user();
 		$id = $user->id();
@@ -739,6 +818,13 @@ class DBOMetaStorage implements MetaStorage
 			$parent->addFile($this->fileFromRow($user, $row, $parent));
 		}
 		
+		// Load subdirectories if required
+		if ($recursive) {
+			foreach($parent->files() as $file) {
+				$this->loadChildren($file, $recursive);
+			}
+		}
+		
 		// Return isn't required, but looks nice
 		return $parent;
 	}
@@ -766,11 +852,6 @@ class DBOMetaStorage implements MetaStorage
 		// Get basic values
 		$update = $user->serialize();
 		
-		// Add meta values
-		foreach($user->meta() as $key => $value) {
-			$update[$key] = $value;
-		}
-		
 		// Useless
 		unset($update['id']);
 		
@@ -778,13 +859,13 @@ class DBOMetaStorage implements MetaStorage
 		$update_keys = array();
 		$update_values = array();
 		foreach($update as $key => $value) {
-			$update_keys[] = "$key = ?";
+			$update_keys[] = "`$key` = ?";
 			$update_values[] = $value;
 		}
 		
 		// Add file ID for final condition
 		$update_values[] = $id;
-		
+
 		// Run query
 		$prep = $this->pdo->prepare("UPDATE {$this->usersTable} SET " . implode(", ", $update_keys) . " WHERE id = ?");
 		$prep->execute($update_values);
@@ -793,7 +874,7 @@ class DBOMetaStorage implements MetaStorage
 	}
 	
 	private function sanitizePath($path) {
-		$path = preg_replace("\\/{2,}", "/", $path);
+		$path = preg_replace('/\/{2,}/', "/", $path);
 		
 		if (substr($path, 0, 1) == "/") {
 			$path = substr($path, 1);
@@ -806,15 +887,13 @@ class DBOMetaStorage implements MetaStorage
 		return $path;
 	}
 	
-	public function getPath($user, $path = null) {
+	public function getPath($user, $path = null, $recursive = false) {
 		$id = $user->id();
 		
 		if ($path) {
 			$path = $this->sanitizePath($path);
 		}
-		
-		echo "Loading $path.\n";
-		
+
 		$prep = $this->pdo->prepare("SELECT * FROM {$this->pathsTable} WHERE user_id = ? AND path = ?");
 		$prep->execute(array($id, (string)$path));
 		$data = $prep->fetch();
@@ -822,10 +901,10 @@ class DBOMetaStorage implements MetaStorage
 		if (!$data)
 			return null;
 
-		return $this->loadChildren($this->pathFromRow($user, $data));
+		return $this->loadChildren($this->pathFromRow($user, $data), $recursive);
 	}
 	
-	public function getPathById($user, $path_id) {
+	public function getPathById($user, $path_id, $recursive = false) {
 		$id = $user->id();
 		
 		$prep = $this->pdo->prepare("SELECT * FROM {$this->pathsTable} WHERE user_id = ? AND id = ?");
@@ -835,32 +914,48 @@ class DBOMetaStorage implements MetaStorage
 		if (!$row)
 			return null;
 		
-		return $this->loadChildren($this->pathFromRow($user, $row));
+		return $this->loadChildren($this->pathFromRow($user, $row), $recursive);
 	}
 	
 	public function getFile($user, $path) {
 		throw new Exception("Not yet implemented.");
 	}
 	
-	public function getFileById($user, $file_id) {
-		$id = $user->id();
+	public function getFileById($user, $file_id, $parent = true) {
+		$id = null;
+		if ($user != null) {
+			$id = $user->id();
+		}
 		
-		$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ? AND id = ?");
-		$prep->execute(array($id, $file_id));
+		$prep = null;
+		
+		if ($id !== null) {
+			$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ? AND id = ?");
+			$prep->execute(array($id, $file_id));
+		} else {
+			$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE id = ?");
+			$prep->execute(array($file_id));
+		}
+		
 		$row = $prep->fetch();
 		
-		if (!$row)
+		if (!$row) {
 			return null;
+		}
 		
-		return $this->fileFromRow($user, $row);
+		return $this->fileFromRow($user, $row, $user !== null && $parent ? null : false);
+	}
+	
+	public function deleteFile($user, $file) {
+		$id = $user->id();
+		
+		$prep = $this->pdo->prepare("DELETE FROM {$this->filesTable} WHERE user_id = ? AND id = ? LIMIT 1");
+		return $prep->execute(array($id, $file->id()));
 	}
 	
 	public function setFile($user, $file) {
 		// Values which have different column name
-		$keymap = array(
-			'mktime' => 'created',
-			'mdtime' => 'updated'
-		);
+		$keymap = array();
 		
 		// Values which shouldn't be saved to DB
 		$skipped = array(
@@ -870,19 +965,22 @@ class DBOMetaStorage implements MetaStorage
 		
 		// Either we're creating or updating
 		if ($file->meta('id')) {
+
 			// Used to identify file in DB
 			$id = $file->meta('id');
 			
 			// Get basic file values
 			$update = $file->serialize();
 			
+			/*
 			// Add meta values
 			foreach($file->meta() as $key => $value) {
 				$update[$key] = $value;
 			}
+			*/
 			
 			// Add parent
-			if ($file->path) {
+			if ($file->path()) {
 				$update['path_id'] = $file->path()->meta('id');
 			}
 			
@@ -899,7 +997,7 @@ class DBOMetaStorage implements MetaStorage
 				if (isset($keymap[$key]))
 					$key = $keymap[$key];
 				
-				$update_keys[] = "$key = ?";
+				$update_keys[] = "`$key` = ?";
 				$update_values[] = $value;
 			}
 			
@@ -932,14 +1030,17 @@ class DBOMetaStorage implements MetaStorage
 				if (isset($keymap[$key]))
 					$key = $keymap[$key];
 				
-				$insert_keys[] = "$key";
+				$insert_keys[] = "`$key`";
 				$insert_thumbs[] = "?";
 				$insert_values[] = $value;
 			}
 			
 			// Run the damned query
 			$prep = $this->pdo->prepare("INSERT INTO {$this->filesTable} (" . implode(", ", $insert_keys) . ") VALUES (" . implode(", ", $insert_thumbs) . ")");
-			$prep->execute($insert_values);
+			if (!$prep->execute($insert_values)) {
+				print_r($prep->errorInfo());
+				throw new Exception("Failed to save file.");
+			}
 			
 			// Save DB id, for later use
 			$file->set(array('id' => $this->pdo->lastInsertId()));
@@ -978,10 +1079,12 @@ class FolderStorageFile implements ContentStorageFile
 	
 	public function close() {
 		fclose($this->handle);
+		$this->handle = null;
 	}
 	
 	public function __destruct() {
-		$this->close();
+		if ($this->handle)
+			$this->close();
 	}
 }
 
@@ -1002,6 +1105,10 @@ class FolderStorage implements ContentStorage
 	
 	public function getFile($file, $mode) {
 		return new FolderStorageFile($this->getPath($file), $mode);
+	}
+	
+	public function deleteFile($file) {
+		return unlink($this->getPath($file));
 	}
 }
 
@@ -1067,7 +1174,8 @@ class Api
 			'name' => $this->config('name'),
 			'description' => $this->config('description'),
 			'logo' => $this->config('logo'),
-			'nice_url' => $this->config('nice_url')
+			'nice_url' => $this->config('nice_url'),
+			'time' => time()
 		);
 	}
 }
@@ -1112,10 +1220,10 @@ class ApiHandler
 			
 			'get_file' => new ApiHandlerAction('getFile', 'file'),
 			'set_file' => new ApiHandlerAction('setFile', 'file'),
-			
-			'download_file' => new ApiHandlerAction('downloadFile'),
-			
-			'upload_file' => new ApiHandlerAction('uploadFile', 'files')
+			'delete_file' => new ApiHandlerAction('deleteFile', 'bool'),
+			'delete_files' => new ApiHandlerAction('deleteFiles', 'bool'),
+			'download_file' => new ApiHandlerAction('downloadFile', null, true),
+			'upload_file' => new ApiHandlerAction('uploadFile', 'files'),
 		);
 	}
 	
@@ -1126,20 +1234,21 @@ class ApiHandler
 		$this->request = $request;
 		$this->actionId = $request->contents('action_id');
 		
-		// Require user login
-		if (!$user) {
-			return new ApiResponse("error", $this->actionId, "Unauthorized access.", 401);
-		}
-		
 		// First check if we support such action
 		if (!isset($this->actions[$request->action()])) {
-			return new ApiResponse("error", $this->actionId, "Uknown method.", 400);
-		}
+			return new ApiResponse("error", $this->actionId, "Uknown method {$request->action()}.", 400);
+		}		
 		
 		// Load action info
 		$type = $this->actions[$request->action()];
 		$method = $type->method();
 		$response_type = $type->response();
+		$public = $type->isPublic();
+				
+		// Require user login
+		if (!$public && !$user) {
+			return new ApiResponse("error", $this->actionId, "Unauthorized access.", 401);
+		}
 		
 		// Try execution action, return error on exception
 		try {
@@ -1185,6 +1294,7 @@ class ApiHandler
 		// Load requested path string
 		$path = $request->contents('path');
 		$id = $request->contents('id');
+		$recursive = $request->contents('recursive', false);
 		
 		// Load metapath object
 		if ($id !== null) {
@@ -1200,6 +1310,33 @@ class ApiHandler
 		
 		// Return serialized path info
 		return $path->serialize();
+	}
+	
+	public function setFile($request) {
+		// Load file id, which is required
+		$file_id = (int)$request->contents('id');
+		if ($file_id === null) {
+			throw new ApiExcetion("Id is required", 400);
+		}
+		
+		// Load file from meta
+		$file = $this->api->meta()->getFileById($this->user, $file_id);
+		
+		// Unknown file
+		if ($file === null) {
+			throw new ApiExcetion("Uknown file", 404);
+		}
+		
+		$info = $request->contents();
+		
+		if ($info['public'] != 'false' && $info['public'] != '0' && ($info['public'] || $info['public'] == 'true'))
+			$info['public'] = 1;
+		
+		$file->set($info, true);
+		
+		$this->api->meta()->setFile($this->user, $file);
+		
+		return $file->serialize();
 	}
 	
 	public function getFile($request) {
@@ -1224,28 +1361,71 @@ class ApiHandler
 	public function downloadFile($request) {
 		// Load file id, which is required
 		$file_id = (int)$request->contents('id');
+		$file_hash = null;
+		$file_name = null;
+		
 		if ($file_id === null) {
 			throw new ApiExcetion("Id is required", 400);
+		}
+		
+		// File accessed from public, check additional params
+		if (!$this->user) {
+			$file_hash = $request->contents('hash');
+			$file_name = $request->contents('filename');
+			
+			if ($file_hash === null) {
+				throw new ApiExcetion("Hash is required", 400);
+			}
+			
+			if ($file_name === null) {
+				throw new ApiExcetion("Filename is required", 400);
+			}
+			
+			$file_hash = strtolower($file_hash);
 		}
 		
 		// Load file from meta
 		$file = $this->api->meta()->getFileById($this->user, $file_id);
 		
 		// Uknown file
-		if ($file === null) {
-			throw new ApiExcetion("Uknown file", 404);
+		if ($file === null ||
+			($file_hash !== null && substr(md5($file->id() . $file->checksum()), 0, 8) != $file_hash) ||
+			($file_name !== null && $file->filename() != $file_name)) {
+			throw new ApiExcetion("Uknown file.", 404);
+		}
+		
+		// Check if file can be accessed
+		if (!$this->user && !$file->isPublic()) {
+			return new ApiResponse("error", $this->actionId, "Unauthorized access.", 401);
 		}
 		
 		// Return file contents
-		return new FileResponse($this->api->storage->getFile($file, 'rb'));
+		return new FileResponse($this->api->storage()->getFile($file, 'rb'), $file->filename(), $file->size());
 	}
 	
 	public function uploadFile($request) {
+
 		// Path to upload files to
 		$path = $request->contents('path');
+
+		// Load file specific params
+		$replace = $request->contents('replace', array());
+		$checksums = $request->contents('checksum', array());
+		$encryptions = $request->contents('encryption', array());
+		$publics = $request->contents('public', array());
 		
-		// Used to override existing files
-		$replace = $request->contents('replace');
+		// Validate params
+		if (!is_array($replace))
+			$replace = array();
+		
+		if (!is_array($checksums))
+			$checksums = array();
+		
+		if (!is_array($encryptions))
+			$encryptions = array();
+		
+		if (!is_array($publics))
+			$publics = array();
 		
 		// Load metapath object
 		$path = $this->api->meta()->getPath($this->user, $path);
@@ -1260,6 +1440,15 @@ class ApiHandler
 		
 		// Save each file in request
 		foreach($request->files() as $ident => $file) {
+			
+			// If we're replacing existing file
+			$replacing = false;
+			
+			// Load file specific params
+			$encryption = isset($encryptions[$ident]) ? $encryptions[$ident] : null;
+			$checksum = isset($checksums[$ident]) ? $checksums[$ident] : null;
+			$public = isset($publics[$ident]) ? $publics[$ident] : false;
+			
 			// Skip broken files
 			if ($file->error !== null) {
 				$result[$ident] = array('error' => $file->error);
@@ -1267,7 +1456,7 @@ class ApiHandler
 			}
 					
 			// Load meta info
-			if ($replace && isset($replace[$ident])) {
+			if (isset($replace[$ident])) {
 				
 				// Check if overriden file exists
 				$meta = $this->api->meta()->getFileById($this->user, $replace[$ident]);
@@ -1277,10 +1466,15 @@ class ApiHandler
 					continue;
 				}
 				
+				$replacing = true;
+				
 				// Apply changes
 				$meta->set(array(
 					'size' => $file->size,
-					'mdtime' => time()
+					'mdtime' => time(),
+					'public' => $public,
+					'encryption' => $encryption,
+					'checksum' => $checksum
 				), true);
 				
 			} else {
@@ -1292,7 +1486,10 @@ class ApiHandler
 					'mktime' => time(),
 					'mdtime' => time(),
 					'path' => $path,
-					'user' => $this->user
+					'user' => $this->user,
+					'encryption' => $encryption,
+					'checksum' => $checksum,
+					'public' => $public
 				));
 				
 			}
@@ -1302,10 +1499,15 @@ class ApiHandler
 			
 			// Load file handle from storage
 			$storage = $this->api->storage()->getFile($meta, 'wb');
-			$local = fopen($meta->tmp, 'rb');
+			$local = fopen($file->tmp, 'rb');
 			
 			// Check for very rare errors
 			if (!$local) {
+				
+				// Only remove file reference if we weren't replacing
+				if (!$replacing)
+					$this->api->meta()->deleteFile($this->user, $meta);
+				
 				$result[$ident] = array('error' => 'Failed to receive file.');
 				continue;
 			}
@@ -1325,6 +1527,42 @@ class ApiHandler
 		// Respond with file list
 		return $result;
 	}
+		
+	public function deleteFile($request) {
+		$id = (int)$request->contents('id');
+		
+		$file = $this->api->meta()->getFileById($this->user, $id);
+		
+		if ($file === null) {
+			throw new ApiExcetion("Failed to find file.", 404);
+		}
+		
+		$this->api->meta()->deleteFile($this->user, $file);
+		$this->api->storage()->deleteFile($file);
+		
+		return true;
+	}
+	
+	public function deleteFiles($request) {
+		$files = $request->contents('files');
+
+		if ($files === null || !is_array($files)) {
+			throw new ApiExcetion("No file specified.", 400);
+		}
+		
+		foreach($files as $id) {
+			$file = $this->api->meta()->getFileById($this->user, $id);
+			
+			if ($file === null) {
+				throw new ApiExcetion("Failed to find file.", 404);
+			}
+			
+			$this->api->meta()->deleteFile($this->user, $file);
+			$this->api->storage()->deleteFile($file);
+		}
+		
+		return true;
+	}
 	
 }
 
@@ -1332,10 +1570,12 @@ class ApiHandlerAction
 {
 	protected $method;
 	protected $response;
+	protected $isPublic;
 	
-	public function __construct($method, $response = null) {
+	public function __construct($method, $response = null, $isPublic = false) {
 		$this->method = $method;
 		$this->response = $response;
+		$this->isPublic = $isPublic;
 	}
 	
 	public function method() {
@@ -1344,6 +1584,10 @@ class ApiHandlerAction
 	
 	public function response() {
 		return $this->response;
+	}
+	
+	public function isPublic() {
+		return $this->isPublic;
 	}
 }
 

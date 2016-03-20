@@ -49,7 +49,7 @@ class ApiHandler
 		$public = $type->isPublic();
 				
 		// Require user login
-		if (!$public && !$user) {
+		if ((!$public || $this->request->auth()) && !$user) {
 			return new ApiResponse("error", $this->actionId, "Unauthorized access.", 401);
 		}
 		
@@ -113,6 +113,33 @@ class ApiHandler
 		
 		// Return serialized path info
 		return $path->serialize();
+	}
+	
+	public function setFile($request) {
+		// Load file id, which is required
+		$file_id = (int)$request->contents('id');
+		if ($file_id === null) {
+			throw new ApiExcetion("Id is required", 400);
+		}
+		
+		// Load file from meta
+		$file = $this->api->meta()->getFileById($this->user, $file_id);
+		
+		// Unknown file
+		if ($file === null) {
+			throw new ApiExcetion("Uknown file", 404);
+		}
+		
+		$info = $request->contents();
+		
+		if ($info['public'] != 'false' && $info['public'] != '0' && ($info['public'] || $info['public'] == 'true'))
+			$info['public'] = 1;
+		
+		$file->set($info, true);
+		
+		$this->api->meta()->setFile($this->user, $file);
+		
+		return $file->serialize();
 	}
 	
 	public function getFile($request) {
@@ -180,17 +207,28 @@ class ApiHandler
 	}
 	
 	public function uploadFile($request) {
+
 		// Path to upload files to
 		$path = $request->contents('path');
 
-		// Used to override existing files
-		$replace = $request->contents('replace');
+		// Load file specific params
+		$replace = $request->contents('replace', array());
+		$checksums = $request->contents('checksum', array());
+		$encryptions = $request->contents('encryption', array());
+		$publics = $request->contents('public', array());
 		
-		// Used to send checksums
-		$checksums = $request->contents('checksum');
+		// Validate params
+		if (!is_array($replace))
+			$replace = array();
 		
-		// Used to send encryption info
-		$encryptions = $request->contents('encryption');
+		if (!is_array($checksums))
+			$checksums = array();
+		
+		if (!is_array($encryptions))
+			$encryptions = array();
+		
+		if (!is_array($publics))
+			$publics = array();
 		
 		// Load metapath object
 		$path = $this->api->meta()->getPath($this->user, $path);
@@ -205,10 +243,14 @@ class ApiHandler
 		
 		// Save each file in request
 		foreach($request->files() as $ident => $file) {
+			
+			// If we're replacing existing file
 			$replacing = false;
 			
+			// Load file specific params
 			$encryption = isset($encryptions[$ident]) ? $encryptions[$ident] : null;
 			$checksum = isset($checksums[$ident]) ? $checksums[$ident] : null;
+			$public = isset($publics[$ident]) ? $publics[$ident] : false;
 			
 			// Skip broken files
 			if ($file->error !== null) {
@@ -217,7 +259,7 @@ class ApiHandler
 			}
 					
 			// Load meta info
-			if ($replace && isset($replace[$ident])) {
+			if (isset($replace[$ident])) {
 				
 				// Check if overriden file exists
 				$meta = $this->api->meta()->getFileById($this->user, $replace[$ident]);
@@ -232,7 +274,10 @@ class ApiHandler
 				// Apply changes
 				$meta->set(array(
 					'size' => $file->size,
-					'mdtime' => time()
+					'mdtime' => time(),
+					'public' => $public,
+					'encryption' => $encryption,
+					'checksum' => $checksum
 				), true);
 				
 			} else {
@@ -246,7 +291,8 @@ class ApiHandler
 					'path' => $path,
 					'user' => $this->user,
 					'encryption' => $encryption,
-					'checksum' => $checksum
+					'checksum' => $checksum,
+					'public' => $public
 				));
 				
 			}

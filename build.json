@@ -1,0 +1,12 @@
+{
+	sources: [
+	
+	
+	],
+	
+	copy: [
+		"install",
+		".htaccess"
+	]
+
+}

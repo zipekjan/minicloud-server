@@ -42,10 +42,10 @@ class MetaFile
 	
 	public function set($meta, $restricted = false) {
 		$data = new ArrayWrapper($meta);
-		
+
 		// These can't be updated by user
 		if (!$restricted) {
-			$this->id = $data->get('id', $this->id);
+			$this->id = (int)$data->get('id', $this->id);
 			$this->user = $data->get('user', $this->user);
 			$this->size = $data->get('size', $this->size);
 			$this->checksum = $data->get('checksum', $this->checksum);
@@ -56,9 +56,9 @@ class MetaFile
 		$this->path = $data->get('path', $this->path);
 		$this->filename = $data->get('filename', $this->filename);
 		$this->encryption = $data->get('encryption', $this->encryption);
-		$this->mktime = $data->get('mktime', $this->mktime);
-		$this->mdtime = $data->get('mdtime', $this->mdtime);
-		$this->isPublic = $data->get('public', $this->isPublic);
+		$this->mktime = (int)$data->get('mktime', $this->mktime);
+		$this->mdtime = (int)$data->get('mdtime', $this->mdtime);
+		$this->isPublic = (int)$data->get('public', $this->isPublic);
 		
 		return $this;
 	}
