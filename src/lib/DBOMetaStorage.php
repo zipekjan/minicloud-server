@@ -27,15 +27,17 @@ class DBOMetaStorage implements MetaStorage
 	 *
 	 * @param MetaUser $user owner
 	 * @param array $row data
-	 * @param MetaPath $parent OPTIONAL parent object (prevents autoload)
+	 * @param MetaPath $parent OPTIONAL parent object, false to stop autoload
 	 * @return MetaFile
 	 */
 	protected function fileFromRow($user, $row, $parent = null) {
 		// Autoload parent metapath
-		if ($parent != null) {
-			$row['path_id'] = $parent;
-		} elseif ($row['path_id'] && is_numeric($row['path_id'])) {
-			$row['path_id'] = $this->getPathById($user, $row['path_id']);
+		if ($parent !== false) {
+			if ($parent != null) {
+				$row['path_id'] = $parent;
+			} elseif ($row['path_id'] && is_numeric($row['path_id'])) {
+				$row['path_id'] = $this->getPathById($user, $row['path_id']);
+			}
 		}
 		
 		// Remap meta array
@@ -226,16 +228,28 @@ class DBOMetaStorage implements MetaStorage
 	}
 	
 	public function getFileById($user, $file_id) {
-		$id = $user->id();
+		$id = null;
+		if ($user != null) {
+			$id = $user->id();
+		}
 		
-		$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ? AND id = ?");
-		$prep->execute(array($id, $file_id));
+		$prep = null;
+		
+		if ($id !== null) {
+			$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ? AND id = ?");
+			$prep->execute(array($id, $file_id));
+		} else {
+			$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE id = ?");
+			$prep->execute(array($file_id));
+		}
+		
 		$row = $prep->fetch();
 		
-		if (!$row)
+		if (!$row) {
 			return null;
+		}
 		
-		return $this->fileFromRow($user, $row);
+		return $this->fileFromRow($user, $row, $user !== null ? null : false);
 	}
 	
 	public function deleteFile($user, $file) {

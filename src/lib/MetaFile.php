@@ -30,6 +30,9 @@ class MetaFile
 	///@var string $checksum file md5 checksum
 	protected $checksum;
 	
+	///@var bool $isPublic is file shareable
+	protected $isPublic;
+	
 	///@var array $meta meta data specific for meta storage
 	protected $meta = array();
 		
@@ -55,6 +58,7 @@ class MetaFile
 		$this->encryption = $data->get('encryption', $this->encryption);
 		$this->mktime = $data->get('mktime', $this->mktime);
 		$this->mdtime = $data->get('mdtime', $this->mdtime);
+		$this->isPublic = $data->get('public', $this->isPublic);
 		
 		return $this;
 	}
@@ -84,6 +88,7 @@ class MetaFile
 			'encryption' => $this->encryption,
 			'mktime' => $this->mktime,
 			'mdtime' => $this->mdtime,
+			'public' => $this->isPublic,
 			'path' => $this->path->path(),
 			'path_id' => $this->path->id()
 		);
@@ -91,6 +96,10 @@ class MetaFile
 
 	public function id() {
 		return $this->id;
+	}
+	
+	public function filename() {
+		return $this->filename;
 	}
 	
 	public function path() {
@@ -103,6 +112,14 @@ class MetaFile
 	
 	public function size() {
 		return $this->size;
+	}
+	
+	public function isPublic() {
+		return $this->isPublic;
+	}
+	
+	public function checksum() {
+		return $this->checksum;
 	}
 	
 }
