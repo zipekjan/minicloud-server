@@ -3,6 +3,18 @@
  * Script to join API code to single file for distribution
  */
 
+// Path to source files
+$src = "src/api";
+
+// Path to destination
+$dist = "dist/";
+
+// Path to installation sources
+$install = "src/install";
+
+// Path to htaccess (nice urls)
+$htaccess = "src/.htaccess";
+ 
 /**
  * Copy a file, or recursively copy a folder and its contents
  * @author      Aidan Lister <aidan@php.net>
@@ -45,13 +57,6 @@ function xcopy($source, $dest, $permissions = 0755) {
     $dir->close();
     return true;
 }
- 
-// Path to source files
-$src = "src/";
-$config = "src/config.php";
-
-// Path to destination
-$dist = "dist/";
 
 // Files to be included
 $files = explode("\n", file_get_contents("build.files"));
@@ -85,11 +90,8 @@ foreach($files as $file) {
 // Save to result file
 file_put_contents("$dist/api.php", $contents);
 
-// Copy config template
-copy($config, "$dist/config.php");
-
 // Copy installation procedure
-xcopy("$src/install", $dist);
+xcopy($install, $dist);
 
 // Copy htaccess
-copy("$src/.htaccess", "$dist/.htaccess");
+copy($htaccess, "$dist/.htaccess");
