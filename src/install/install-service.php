@@ -1,4 +1,6 @@
 <?php
+
+// Allow only valid request
 if (!isset($_GET['action'])) {
 	header("Location: install.php");
 	exit;
@@ -7,14 +9,21 @@ if (!isset($_GET['action'])) {
 $action = $_GET['action'];
 
 switch($action) {
+	
+	/**
+	 * Validate input fields
+	 */
+	 
 	case 'validate':
 		
+		// Each key is category
 		$result = array(
 			'database' => 'OK',
 			'storage' => 'OK',
 			'php' => 'OK'
 		);
 		
+		// Load input values
 		$db_host = $_POST['db_host'];
 		$db_user = $_POST['db_user'];
 		$db_pass = $_POST['db_pass'];
@@ -22,6 +31,7 @@ switch($action) {
 		
 		$storage_folder = $_POST['storage_folder'];
 		
+		// Validate database params
 		try {
 			$pdo = new PDO(
 				"mysql:host=$db_host;dbname=$db_name",
@@ -31,18 +41,25 @@ switch($action) {
 			$result['database'] = "Failed to connect.";
 		}
 		
+		// Validate storage params
 		if (!file_exists($storage_folder)) {
 			$result['storage'] = "Path doesn't exists.";
 		} else if (!is_writable($storage_folder)) {
 			$result['storage'] = "Path isn't writable.";
 		}
 		
+		// Dump result
 		die(json_encode($result));
 
 		break;
 		
+	/**
+	 * Do installation
+	 */
+	
 	case 'install':
 	
+		// Load necessary values
 		$db_host = $_POST['db_host'];
 		$db_user = $_POST['db_user'];
 		$db_pass = $_POST['db_pass'];
@@ -56,6 +73,7 @@ switch($action) {
 		$server_name = $_POST['server_name'];
 		$server_desc = $_POST['server_desc'];
 		
+		// Connect to server
 		try {
 			$pdo = new PDO(
 				"mysql:host=$db_host;dbname=$db_name",
@@ -67,6 +85,7 @@ switch($action) {
 			)));
 		}
 		
+		// Create database tables
 		$commands = explode(';', file_get_contents('install.sql'));
 		
 		foreach($commands as $command) {
@@ -81,6 +100,7 @@ switch($action) {
 			
 		}
 		
+		// Create admin user
 		$prep = $pdo->prepare("INSERT INTO users (name, password) VALUES (?,SHA2(?, 256))");
 		if (!$prep->execute(array($admin_user, $admin_pass))) {
 			die(json_encode(array(
@@ -88,8 +108,10 @@ switch($action) {
 			)));
 		}
 		
+		// Load config template
 		$config = file_get_contents('config.php.template');
 		
+		// Prepare values
 		$values = array(
 			'SERVER_NAME' => $server_name,
 			'SERVER_DESCRIPTION' => $server_desc,
@@ -102,12 +124,24 @@ switch($action) {
 			'DB_PASS' => $db_pass
 		);
 		
+		// Replace values in template
 		foreach($values as $key => $value) {
 			$config = str_replace("$$key$", $value, $config);
 		}
 		
+		// Create config
 		file_put_contents('config.php', $config);
 		
+		// Remove installation files
+		unlink('install-service.php');
+		unlink('config.php.template');
+		unlink('install.php');
+		unlink('install.css');
+		unlink('install.js');
+		unlink('install.sql');
+		unlink('logo.png');
+		
+		// Output result
 		die(json_encode(array('install' => 'OK')));
 		
 		break;
