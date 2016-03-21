@@ -87,6 +87,9 @@ foreach($files as $file) {
 	
 }
 
+if (!file_exists($dist))
+	mkdir($dist);
+
 // Save to result file
 file_put_contents("$dist/api.php", $contents);
 
