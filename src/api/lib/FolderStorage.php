@@ -19,6 +19,6 @@ class FolderStorage implements ContentStorage
 	}
 	
 	public function deleteFile($file) {
-		return unlink($this->getPath($file));
+		return @unlink($this->getPath($file));
 	}
 }

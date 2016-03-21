@@ -20,6 +20,9 @@ class ApiHandler
 			
 			'get_path' => new ApiHandlerAction('getPath', 'path'),
 			'set_path' => new ApiHandlerAction('setPath', 'path'),
+			'create_path' => new ApiHandlerAction('createPath', 'path'),
+			'delete_path' => new ApiHandlerAction('deletePath', 'path'),
+			'delete_paths' => new ApiHandlerAction('deletePaths', 'path'),
 			
 			'get_file' => new ApiHandlerAction('getFile', 'file'),
 			'set_file' => new ApiHandlerAction('setFile', 'file'),
@@ -79,6 +82,78 @@ class ApiHandler
 		return new ApiResponse($response_type, $this->actionId, $data);
 	}
 	
+	private function sanitizePath($path) {
+		$path = preg_replace('/\/{2,}/', "/", $path);
+		
+		if (substr($path, 0, 1) == "/") {
+			$path = substr($path, 1);
+		}
+		
+		if (substr($path, strlen($path) - 1, 1) == "/") {
+			$path = substr($path, 0, strlen($path) - 1);
+		}
+		
+		return $path;
+	}
+	
+	private function mkPath($path) {
+		// Sanitize path (remove /)
+		$path = $this->sanitizePath($path);
+		
+		// Check for duplicates
+		$existing = $this->api->meta()->getPath($this->user, $path);
+		
+		if ($existing)
+			return $existing;
+		
+		// Load user root
+		$parent = $this->api->meta()->getPath($this->user, null);
+		
+		// Split path
+		$parts = explode('/', $path);
+		
+		// Current path in loop
+		$current = "";
+		
+		// Now advance
+		foreach($parts as $part) {
+			
+			// Don't add slash to root
+			if ($current != "")
+				$current .= "/";
+			
+			$current .= $part;
+			
+			// Check if subpath exists
+			$found = null;
+			foreach($parent->paths() as $path) {
+				if ($path->path() == $current) {
+					$found = $this->api->meta()->getPathById($this->user, $path->id());
+					break;
+				}
+			}
+			
+			// Create new path or just continue
+			if ($found) {
+				$parent = $found;
+			} else {
+				$parent = new MetaPath(array(
+					'user' => $this->user,
+					'parent' => $parent->id(),
+					'mktime' => time(),
+					'mdtime' => time(),
+					'path' => $current
+				));
+				
+				$this->api->meta()->setPath($this->user, $parent);
+			}
+			
+		}
+		
+		// Last parent is new path
+		return $parent;
+	}
+	
 	public function getServerInfo($request) {
 		return $this->api->getInfo();
 	}
@@ -91,6 +166,54 @@ class ApiHandler
 	
 	public function getUserInfo($request) {
 		return $this->user->serialize();
+	}
+	
+	public function createPath($request) {
+		
+		// Load provided params
+		$path = $request->contents('path');
+		
+		if ($path == null) {
+			throw new ApiExcetion("Path is required.", 400);
+		}
+		
+		return $this->mkPath($path)->serialize();
+	}
+	
+	public function setPath($request) {
+		// Load provided params
+		$id = $request->contents('id');
+		$path = $request->contents('path');
+		
+		if ($id === null && $path === null) {
+			throw new ApiExcetion("Identification is required.", 400);
+		}
+		
+		// Normalize
+		$id = (int)$id;
+		
+		// Load file from meta
+		if ($path !== null) {
+			$path = $this->api->meta()->getPath($this->user, $path);			
+		} else {
+			$path = $this->api->meta()->getPathById($this->user, $id);
+		}
+		
+		// Unknown
+		if ($path === null) {
+			throw new ApiExcetion("Uknown path.", 404);
+		}
+		
+		// Load provided params
+		$info = $request->contents();
+		
+		// Apply provided params
+		$path->set($info, true);
+		
+		// Save to meta database
+		$this->api->meta()->setPath($this->user, $path);
+		
+		return $path->serialize();
 	}
 	
 	public function getPath($request) {
@@ -231,7 +354,8 @@ class ApiHandler
 			$publics = array();
 		
 		// Load metapath object
-		$path = $this->api->meta()->getPath($this->user, $path);
+		//$path = $this->api->meta()->getPath($this->user, $path);
+		$path = $this->mkPath($path);
 		
 		// Failed to find path in meta
 		if ($path === null) {
@@ -281,7 +405,7 @@ class ApiHandler
 				), true);
 				
 			} else {
-				
+
 				// Create new file
 				$meta = new MetaFile(array(
 					'filename' => $file->name,

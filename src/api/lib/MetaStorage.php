@@ -48,7 +48,7 @@ interface MetaStorage
 	 * Saves folder data
 	 *
 	 * @param MetaUser $user
-	 * @param MetaFolder $folder
+	 * @param MetaPath $folder
 	 */
-	public function setFolder($user, $folder);
+	public function setPath($user, $folder);
 }

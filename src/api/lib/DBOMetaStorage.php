@@ -259,105 +259,165 @@ class DBOMetaStorage implements MetaStorage
 		return $prep->execute(array($id, $file->id()));
 	}
 	
-	public function setFile($user, $file) {
-		// Values which have different column name
-		$keymap = array();
+	private function metaUpdate($user, $meta) {
 		
-		// Values which shouldn't be saved to DB
-		$skipped = array(
-			'id' => true,
-			'path' => true
-		);
+		// Table used
+		$table = null;
 		
-		// Either we're creating or updating
-		if ($file->meta('id')) {
-
-			// Used to identify file in DB
-			$id = $file->meta('id');
+		// Skiped serialized data
+		$skipped = array();
+		
+		// Used to identify file in DB
+		$id = $meta->meta('id');
+		
+		// Get basic file values
+		$update = $meta->serialize();
+		
+		// Updated behaviour based on meta object type
+		if ($meta instanceof MetaFile) {
 			
-			// Get basic file values
-			$update = $file->serialize();
+			$skipped = array(
+				'id' => true,
+				'path' => true
+			);
 			
-			/*
-			// Add meta values
-			foreach($file->meta() as $key => $value) {
-				$update[$key] = $value;
-			}
-			*/
+			$table = $this->filesTable;
 			
 			// Add parent
-			if ($file->path()) {
+			if ($meta->path()) {
 				$update['path_id'] = $file->path()->meta('id');
 			}
 			
-			// Useless
-			unset($update['id']);
-			
-			// Prepare query values
-			$update_keys = array();
-			$update_values = array();
-			foreach($update as $key => $value) {
-				if (isset($skipped[$key]))
-					continue;
-
-				if (isset($keymap[$key]))
-					$key = $keymap[$key];
-				
-				$update_keys[] = "`$key` = ?";
-				$update_values[] = $value;
-			}
-			
-			// Add file ID for final condition
-			$update_values[] = $id;
-			$update_values[] = $user->id();
-			
-			// Run query
-			$prep = $this->pdo->prepare("UPDATE {$this->filesTable} SET " . implode(", ", $update_keys) . " WHERE id = ? AND user_id = ?");
-			$prep->execute($update_values);
-			
-			return $file;
 		} else {
 			
-			// Get file values
-			$insert = $file->serialize();
+			$skipped = array(
+				'id' => true,
+				'files' => true,
+				'paths' => true
+			);
 			
-			// Add user id (only required for insert)
-			$insert['user_id'] = $file->user()->id();
+			$table = $this->pathsTable;
 			
-			// Prepare query data
-			$insert_keys = array();
-			$insert_thumbs = array();
-			$insert_values = array();
-			
-			foreach($insert as $key => $value) {
-				if (isset($skipped[$key]))
-					continue;
-				
-				if (isset($keymap[$key]))
-					$key = $keymap[$key];
-				
-				$insert_keys[] = "`$key`";
-				$insert_thumbs[] = "?";
-				$insert_values[] = $value;
-			}
-			
-			// Run the damned query
-			$prep = $this->pdo->prepare("INSERT INTO {$this->filesTable} (" . implode(", ", $insert_keys) . ") VALUES (" . implode(", ", $insert_thumbs) . ")");
-			if (!$prep->execute($insert_values)) {
-				print_r($prep->errorInfo());
-				throw new Exception("Failed to save file.");
-			}
-			
-			// Save DB id, for later use
-			$file->set(array('id' => $this->pdo->lastInsertId()));
-			
-			// Return saved file
-			return $file;
 		}
+		
+		// Useless
+		unset($update['id']);
+		
+		// Prepare query values
+		$update_keys = array();
+		$update_values = array();
+		foreach($update as $key => $value) {
+			if (isset($skipped[$key]))
+				continue;
+
+			if (isset($keymap[$key]))
+				$key = $keymap[$key];
+			
+			$update_keys[] = "`$key` = ?";
+			$update_values[] = $value;
+		}
+		
+		// Add file ID for final condition
+		$update_values[] = $id;
+		$update_values[] = $user->id();
+		
+		// Run query
+		$prep = $this->pdo->prepare("UPDATE $table SET " . implode(", ", $update_keys) . " WHERE id = ? AND user_id = ?");
+		$prep->execute($update_values);
+	}
+	
+	public function metaInsert($user, $meta) {
+		
+		// Used table
+		$table = null;
+		
+		// Skipped serialized values
+		$skipped = array();
+		
+		// Path has different values
+		if ($meta instanceof MetaPath) {
+			
+			$skipped = array(
+				'id' => true,
+				'files' => true,
+				'paths' => true
+			);
+			
+			$table = $this->pathsTable;
+			
+		} else {
+			
+			$skipped = array(
+				'id' => true,
+				'path' => true
+			);
+			
+			$table = $this->filesTable;
+			
+		}
+		
+		// Get serialized values
+		$insert = $meta->serialize();
+		
+		// Add user id (only required for insert)
+		$insert['user_id'] = $meta->user()->id();
+		
+		// Prepare query data
+		$insert_keys = array();
+		$insert_thumbs = array();
+		$insert_values = array();
+		
+		foreach($insert as $key => $value) {
+			if (isset($skipped[$key]))
+				continue;
+			
+			if (isset($keymap[$key]))
+				$key = $keymap[$key];
+			
+			$insert_keys[] = "`$key`";
+			$insert_thumbs[] = "?";
+			$insert_values[] = $value;
+		}
+		
+		// Run the damned query
+		$prep = $this->pdo->prepare("INSERT INTO $table (" . implode(", ", $insert_keys) . ") VALUES (" . implode(", ", $insert_thumbs) . ")");
+		if (!$prep->execute($insert_values)) {
+			throw new Exception("Failed to save meta data. " . print_r($prep->errorInfo(), true));
+		}
+		
+		// Save DB id, for later use
+		$meta->set(array('id' => $this->pdo->lastInsertId()));
 		
 	}
 	
-	public function setFolder($user, $folder) {
+	private function metaSet($user, $meta) {
+		
+		// Check if meta object is already saved
+		if ($meta->meta('id')) {
+			
+			// Only update values
+			$this->metaUpdate($user, $meta);
+			
+		} else {
+			
+			// Create new meta item
+			$this->metaInsert($user, $meta);
+			
+		}
+		
+		return $meta;
+		
+	}
+	
+	public function setFile($user, $file) {		
+	
+		return $this->metaSet($user, $file);
+		
+	}
+	
+	public function setPath($user, $path) {
+		
+		return $this->metaSet($user, $path);
 		
 	}
 }

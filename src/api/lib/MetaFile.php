@@ -90,7 +90,7 @@ class MetaFile
 			'mdtime' => $this->mdtime,
 			'public' => $this->isPublic,
 			'path' => $this->path->path(),
-			'path_id' => $this->path->id()
+			'path_id' =>$this->path->id()
 		);
 	}
 
