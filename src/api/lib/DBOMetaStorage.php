@@ -285,7 +285,7 @@ class DBOMetaStorage implements MetaStorage
 			
 			// Add parent
 			if ($meta->path()) {
-				$update['path_id'] = $file->path()->meta('id');
+				$update['path_id'] = $meta->path()->meta('id');
 			}
 			
 		} else {

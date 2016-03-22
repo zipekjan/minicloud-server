@@ -12,6 +12,7 @@ class MetaUser
 	protected $email;
 	protected $password;
 	protected $key;
+	protected $keyEncryption;
 	protected $admin;
 	
 	public function __construct($data) {
@@ -30,6 +31,7 @@ class MetaUser
 		$this->email = $data->get('email', $this->email);
 		$this->password = $data->get('password', $this->password);
 		$this->key = $data->get('key', $this->key);
+		$this->keyEncryption = $data->get('key_encryption', $this->keyEncryption);
 		
 		$this->meta = $meta;
 	}
@@ -66,7 +68,8 @@ class MetaUser
 			'name' => $this->name,
 			'email' => $this->email,
 			'key' => $this->key,
-			'admin' => $this->admin
+			'admin' => $this->admin,
+			'key_encryption' => $this->keyEncryption
 		);
 	}
 }
