@@ -101,7 +101,7 @@ switch($action) {
 		}
 		
 		// Create admin user
-		$prep = $pdo->prepare("INSERT INTO users (name, password) VALUES (?,SHA2(?, 256))");
+		$prep = $pdo->prepare("INSERT INTO users (name, password, admin) VALUES (?,SHA2(?, 256),1)");
 		if (!$prep->execute(array($admin_user, $admin_pass))) {
 			die(json_encode(array(
 				'install' => 'SQL Failed: ' . print_r($prep->errorInfo(), true)
