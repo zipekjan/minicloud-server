@@ -108,6 +108,17 @@ switch($action) {
 			)));
 		}
 		
+		// Get created user ID
+		$user_id = $pdo->lastInsertId();
+		
+		// Assign storage
+		$prep = $pdo->prepare("INSERT INTO paths (user_id, path, mktime, mdtime) VALUES (?, '', ?, ?)");
+		if (!$prep->execute(array($user_id, time(), time()))) {
+			die(json_encode(array(
+				'install' => 'SQL Failed: ' . print_r($prep->errorInfo(), true)
+			)));
+		}
+		
 		// Load config template
 		$config = file_get_contents('config.php.template');
 		
