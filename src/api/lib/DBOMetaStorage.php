@@ -185,34 +185,10 @@ class DBOMetaStorage implements MetaStorage
 	}
 	
 	public function setUser($user) {
-		// Get user ID
-		if (!$user->id())
-			return null;
 		
-		$id = $user->id();
+		$this->metaSet($user, $user);
+		return $user;
 		
-		// Get basic values
-		$update = $user->serialize();
-		
-		// Useless
-		unset($update['id']);
-		
-		// Prepare query values
-		$update_keys = array();
-		$update_values = array();
-		foreach($update as $key => $value) {
-			$update_keys[] = "`$key` = ?";
-			$update_values[] = $value;
-		}
-		
-		// Add file ID for final condition
-		$update_values[] = $id;
-
-		// Run query
-		$prep = $this->pdo->prepare("UPDATE {$this->usersTable} SET " . implode(", ", $update_keys) . " WHERE id = ?");
-		$prep->execute($update_values);
-		
-		return $user->serialize();
 	}
 	
 	private function sanitizePath($path) {
@@ -324,7 +300,7 @@ class DBOMetaStorage implements MetaStorage
 				$update['path_id'] = $meta->path()->meta('id');
 			}
 			
-		} else {
+		} else if ($meta instanceof MetaPath) {
 			
 			$skipped = array(
 				'id' => true,
@@ -333,6 +309,14 @@ class DBOMetaStorage implements MetaStorage
 			);
 			
 			$table = $this->pathsTable;
+			
+		} else if ($meta instanceof MetaUser) {
+			
+			$skipped = array(
+				'id' => true
+			);
+			
+			$table = $this->usersTable;
 			
 		}
 		
@@ -355,10 +339,15 @@ class DBOMetaStorage implements MetaStorage
 		
 		// Add file ID for final condition
 		$update_values[] = $id;
-		$update_values[] = $user->id();
 		
 		// Run query
-		$prep = $this->pdo->prepare("UPDATE $table SET " . implode(", ", $update_keys) . " WHERE id = ? AND user_id = ?");
+		if ($user instanceof MetaUser) {
+			$prep = $this->pdo->prepare("UPDATE $table SET " . implode(", ", $update_keys) . " WHERE id = ?");
+		} else {
+			$update_values[] = $user->id();
+			$prep = $this->pdo->prepare("UPDATE $table SET " . implode(", ", $update_keys) . " WHERE id = ? AND user_id = ?");
+		}
+		
 		$prep->execute($update_values);
 	}
 	
@@ -381,7 +370,7 @@ class DBOMetaStorage implements MetaStorage
 			
 			$table = $this->pathsTable;
 			
-		} else {
+		} else if ($meta instanceof MetaFile) {
 			
 			$skipped = array(
 				'id' => true,
@@ -390,13 +379,22 @@ class DBOMetaStorage implements MetaStorage
 			
 			$table = $this->filesTable;
 			
+		} else if ($meta instanceof MetaUser) {
+			
+			$skipped = array(
+				'id' => true
+			);
+			
+			$table = $this->usersTable;
+			
 		}
 		
 		// Get serialized values
 		$insert = $meta->serialize();
 		
 		// Add user id (only required for insert)
-		$insert['user_id'] = $meta->user()->id();
+		if (!($meta instanceof MetaUser))
+			$insert['user_id'] = $meta->user()->id();
 		
 		// Prepare query data
 		$insert_keys = array();

@@ -175,7 +175,7 @@ class ApiHandler
 		
 		$this->user->set($request->contents(), true);
 		
-		return $this->api->meta()->setUser($this->user);
+		return $this->api->meta()->setUser($this->user)->serialize();
 	}
 	
 	public function getUserInfo($request) {
@@ -528,6 +528,15 @@ class ApiHandler
 		$user = new MetaUser($request->contents());
 		
 		$this->api->meta()->setUser($user);
+		
+		$path = new MetaPath(array(
+			'user' => $user,
+			'path' => '',
+			'mktime' => time(),
+			'mdtime' => time()
+		));
+		
+		$this->api->meta()->setPath($user, $path);
 		
 		return $user->serialize();
 		

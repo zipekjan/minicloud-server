@@ -69,6 +69,7 @@ class MetaUser
 			'email' => $this->email,
 			'key' => $this->key,
 			'admin' => $this->admin,
+			'password' => $this->password,
 			'key_encryption' => $this->keyEncryption
 		);
 	}
