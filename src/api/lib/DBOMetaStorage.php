@@ -136,7 +136,7 @@ class DBOMetaStorage implements MetaStorage
 	}
 	
 	public function getUser($hash) {
-		//@TODO: Maybe use something random to make hash different everytime
+
 		$prep = $this->pdo->prepare("SELECT * FROM {$this->usersTable} WHERE SHA2(CONCAT(name, password), 256) = ?");
 		$prep->execute(array($hash));
 		
@@ -146,6 +146,42 @@ class DBOMetaStorage implements MetaStorage
 		}
 		
 		return null;
+	}
+	
+	public function getUserById($id) {
+		
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->usersTable} WHERE id = ?");
+		$prep->execute(array($id));
+		
+		$data = $prep->fetch();
+		if ($data) {
+			return new MetaUser($data);
+		}
+		
+		return null;
+		
+	}
+	
+	public function getUsers() {
+		
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->usersTable}");
+		$prep->execute();
+		
+		$users = array();
+		
+		while($row = $prep->fetch()) {
+			$users[] = new MetaUser($row);
+		}
+		
+		return $users;
+		
+	}
+	
+	public function deleteUser($user) {
+		
+		$prep = $this->pdo->prepare("DELETE FROM {$this->usersTable} WHERE id = ? LIMIT 1");
+		return $prep->execute(array($user->id()));
+		
 	}
 	
 	public function setUser($user) {
@@ -420,4 +456,35 @@ class DBOMetaStorage implements MetaStorage
 		return $this->metaSet($user, $path);
 		
 	}
+	
+	public function getFiles($user) {
+		
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->filesTable} WHERE user_id = ?");
+		$prep->execute(array($user->id()));
+		
+		$files = array();
+		
+		while($row = $prep->fetch()) {
+			$files[] = $this->fileFromRow($user, $row, false);
+		}
+		
+		return $files;
+		
+	}
+	
+	public function getPaths($user) {
+		
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->pathsTable} WHERE user_id = ?");
+		$prep->execute(array($user->id()));
+		
+		$paths = array();
+		
+		while($row = $prep->fetch()) {
+			$paths[] = $this->pathFromRow($user, $row);
+		}
+		
+		return $paths;
+		
+	}
+	
 }

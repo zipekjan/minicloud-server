@@ -4,11 +4,13 @@ class ApiHandlerAction
 	protected $method;
 	protected $response;
 	protected $isPublic;
+	protected $adminOnly;
 	
-	public function __construct($method, $response = null, $isPublic = false) {
+	public function __construct($method, $response = null, $isPublic = false, $adminOnly = false) {
 		$this->method = $method;
 		$this->response = $response;
 		$this->isPublic = $isPublic;
+		$this->adminOnly = $adminOnly;
 	}
 	
 	public function method() {
@@ -21,5 +23,9 @@ class ApiHandlerAction
 	
 	public function isPublic() {
 		return $this->isPublic;
+	}
+	
+	public function isAdminOnly() {
+		return $this->adminOnly;
 	}
 }

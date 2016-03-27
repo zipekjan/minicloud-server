@@ -18,11 +18,18 @@ class ApiHandler
 			'get_user' => new ApiHandlerAction('getUserInfo', 'user'),
 			'set_user' => new ApiHandlerAction('setUserInfo', 'user'),
 			
+			'admin_create_user' => new ApiHandlerAction('adminCreateUser', 'user', false, true),
+			'admin_delete_user' => new ApiHandlerAction('adminDeleteUser', 'bool', false, true),
+			'admin_set_user' => new ApiHandlerAction('adminSetUser', 'user', false, true),
+			'admin_get_users' => new ApiHandlerAction('adminGetUsers', 'users', false, true),
+			
 			'get_path' => new ApiHandlerAction('getPath', 'path'),
 			'set_path' => new ApiHandlerAction('setPath', 'path'),
 			'create_path' => new ApiHandlerAction('createPath', 'path'),
 			'delete_path' => new ApiHandlerAction('deletePath', 'path'),
-			'delete_paths' => new ApiHandlerAction('deletePaths', 'path'),
+						
+			'get_paths' => new ApiHandlerAction('getPaths', 'paths'),
+			'delete_paths' => new ApiHandlerAction('deletePaths', 'bool'),
 			
 			'get_file' => new ApiHandlerAction('getFile', 'file'),
 			'set_file' => new ApiHandlerAction('setFile', 'file'),
@@ -50,9 +57,15 @@ class ApiHandler
 		$method = $type->method();
 		$response_type = $type->response();
 		$public = $type->isPublic();
+		$adminOnly = $type->isAdminOnly();
 				
 		// Require user login
 		if ((!$public || $this->request->auth()) && !$user) {
+			return new ApiResponse("error", $this->actionId, "Unauthorized access.", 401);
+		}
+		
+		// Restrict access to admin only actions
+		if ($adminOnly && (!$user || !($user->isAdmin()))) {
 			return new ApiResponse("error", $this->actionId, "Unauthorized access.", 401);
 		}
 		
@@ -159,6 +172,7 @@ class ApiHandler
 	}
 	
 	public function setUserInfo($request) {
+		
 		$this->user->set($request->contents(), true);
 		
 		return $this->api->meta()->setUser($this->user);
@@ -489,6 +503,81 @@ class ApiHandler
 		}
 		
 		return true;
+	}
+	
+	public function deletePaths($request) {
+	
+		throw new Exception("Not yet implemented.");
+	
+	}
+	
+	public function getPaths($request) {
+	
+		$list = array();
+		$paths = $this->api->meta()->getPaths($this->user);
+		
+		foreach($paths as $path)
+			$list[] = $path->serialize();
+			
+		return $list;
+	
+	}
+	
+	public function adminCreateUser($request) {
+		
+		$user = new MetaUser($request->contents());
+		
+		$this->api->meta()->setUser($user);
+		
+		return $user->serialize();
+		
+	}
+	
+	public function adminDeleteUser($request) {
+		
+		$id = $this->request->contents('id', null);
+				
+		$user = $this->api->meta()->getUserById($id);
+		
+		if ($id === null || $user === null) {
+			throw new ApiExcetion("Failed to find user.", 400);
+		}
+		
+		$this->api->meta()->deleteUser($user);
+		
+		return true;
+		
+	}
+	
+	public function adminSetUser($request) {
+		
+		$id = $this->request->contents('id', null);
+				
+		$user = $this->api->meta()->getUserById($id);
+		
+		if ($id === null || $user === null) {
+			throw new ApiExcetion("Failed to find user.", 400);
+		}
+		
+		$user->set($this->request->contents(), true);
+		
+		$this->api->meta()->setUser($user);
+		
+		return $user->serialize();
+		
+	}
+	
+	public function adminGetUsers($request) {
+		
+		$list = array();
+		$users = $this->api->meta()->getUsers();
+		
+		foreach($users as $user) {
+			$list[] = $user->serialize();
+		}
+		
+		return $list;
+		
 	}
 	
 }
