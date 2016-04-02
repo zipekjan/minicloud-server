@@ -11,7 +11,7 @@ class FolderStorage implements ContentStorage
 	}
 	
 	protected function getPath($file) {
-		return $this->folder . '/' . $file->id();
+		return $this->folder . '/' . $file->id() . '.' . $file->version();
 	}
 	
 	public function getFile($file, $mode) {
@@ -19,6 +19,9 @@ class FolderStorage implements ContentStorage
 	}
 	
 	public function deleteFile($file) {
-		return @unlink($this->getPath($file));
+		foreach($file->versions() as $version) {
+			$file->version($version['version']);
+			@unlink($this->getPath($file));
+		}
 	}
 }

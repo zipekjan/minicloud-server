@@ -35,6 +35,12 @@ class MetaFile
 	
 	///@var array $meta meta data specific for meta storage
 	protected $meta = array();
+	
+	///@var array $versions info about file versions
+	protected $versions = array();
+	
+	///@var int $version currently used file version
+	protected $version = null;
 		
 	public function __construct($data) {
 		$this->set($data);
@@ -49,6 +55,7 @@ class MetaFile
 			$this->user = $data->get('user', $this->user);
 			$this->size = $data->get('size', $this->size);
 			$this->checksum = $data->get('checksum', $this->checksum);
+			$this->versions = $data->get('versions', $this->versions);
 			$this->meta = $meta;
 		}
 		
@@ -59,6 +66,7 @@ class MetaFile
 		$this->mktime = (int)$data->get('mktime', $this->mktime);
 		$this->mdtime = (int)$data->get('mdtime', $this->mdtime);
 		$this->isPublic = (int)$data->get('public', $this->isPublic);
+		$this->version = $data->get('version', $this->version);
 		
 		return $this;
 	}
@@ -90,6 +98,8 @@ class MetaFile
 			'mdtime' => $this->mdtime,
 			'public' => $this->isPublic,
 			'path' => $this->path->path(),
+			'versions' => $this->versions,
+			'version' => $this->version,
 			'path_id' =>$this->path->id()
 		);
 	}
@@ -120,6 +130,20 @@ class MetaFile
 	
 	public function checksum() {
 		return $this->checksum;
+	}
+	
+	public function version($set = null) {
+		if ($set !== null)
+			$this->version = $set;
+		
+		return $this->version;
+	}
+	
+	public function versions($set = null) {
+		if ($set !== null)
+			$this->versions = $set;
+		
+		return $this->versions;
 	}
 	
 }

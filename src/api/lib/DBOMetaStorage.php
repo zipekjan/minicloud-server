@@ -6,6 +6,7 @@ class DBOMetaStorage implements MetaStorage
 	protected $usersTable = 'users';
 	protected $filesTable = 'files';
 	protected $pathsTable = 'paths';
+	protected $versionsTable = 'versions';
 	
 	public function __construct($api) {
 		$this->api = $api;
@@ -44,7 +45,20 @@ class DBOMetaStorage implements MetaStorage
 		$data = $row;
 		$data['user'] = $user;
 		$data['path'] = $row['path_id'];
-
+		$data['versions'] = array();
+	
+		// Load versions
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->versionsTable} WHERE file_id = ? ORDER BY id ASC");
+		$prep->execute(array($row['id']));
+		
+		while($ver = $prep->fetch()) {
+			$data['versions'][] = array(
+				'version' => $ver['id'],
+				'created' => $ver['created']
+			);
+			$data['version'] = $ver['id'];
+		}
+		
 		return new MetaFile($data);
 	}
 	
@@ -374,7 +388,9 @@ class DBOMetaStorage implements MetaStorage
 			
 			$skipped = array(
 				'id' => true,
-				'path' => true
+				'path' => true,
+				'versions' => true,
+				'version' => true
 			);
 			
 			$table = $this->filesTable;
@@ -482,6 +498,26 @@ class DBOMetaStorage implements MetaStorage
 		}
 		
 		return $paths;
+		
+	}
+	
+	public function addFileVersion($user, $file) {
+		
+		$prep = $this->pdo->prepare("INSERT INTO {$this->versionsTable} (file_id, created) VALUES (?, ?)");
+		if (!$prep->execute(array($file->id(), time()))) {
+			throw new Exception("Failed to save meta data. " . print_r($prep->errorInfo(), true));
+		}
+		
+		$version = $this->pdo->lastInsertId();
+		
+		$versions = $file->versions();
+		$versions[$version] = array(
+			'version' => $version,
+			'created' => time()
+		);
+		
+		$file->versions($versions);
+		$file->version($version);
 		
 	}
 	

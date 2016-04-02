@@ -45,6 +45,14 @@ interface MetaStorage
 	public function deleteFile($user, $file);
 	
 	/**
+	 * Adds new version to file
+	 *
+	 * @param MetaUser $user
+	 * @param MetaFile $file
+	 */
+	public function addFileVersion($user, $file);
+	
+	/**
 	 * Saves folder data
 	 *
 	 * @param MetaUser $user

@@ -303,6 +303,7 @@ class ApiHandler
 		$file_id = (int)$request->contents('id');
 		$file_hash = null;
 		$file_name = null;
+		$file_version = (int)$request->contents('version');
 		
 		if ($file_id === null) {
 			throw new ApiExcetion("Id is required", 400);
@@ -326,6 +327,14 @@ class ApiHandler
 		
 		// Load file from meta
 		$file = $this->api->meta()->getFileById($this->user, $file_id);
+		
+		// Set version if needed
+		foreach($file->versions() as $version) {
+			if ($version['version'] === $file_version) {
+				$file->version($file_version);
+				break;
+			}
+		}
 		
 		// Uknown file
 		if ($file === null ||
@@ -437,6 +446,9 @@ class ApiHandler
 			
 			// Save meta info to meta storage
 			$meta = $this->api->meta()->setFile($this->user, $meta);
+			
+			// Add new file version
+			$this->api->meta()->addFileVersion($this->user, $meta);
 			
 			// Load file handle from storage
 			$storage = $this->api->storage()->getFile($meta, 'wb');
