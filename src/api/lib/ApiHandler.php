@@ -330,7 +330,7 @@ class ApiHandler
 		
 		// Set version if needed
 		foreach($file->versions() as $version) {
-			if ($version['version'] === $file_version) {
+			if ($version['version'] == $file_version) {
 				$file->version($file_version);
 				break;
 			}
