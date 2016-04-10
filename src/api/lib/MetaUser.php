@@ -33,7 +33,9 @@ class MetaUser
 		$this->key = $data->get('key', $this->key);
 		$this->keyEncryption = $data->get('key_encryption', $this->keyEncryption);
 		
-		$this->meta = $meta;
+		foreach($meta as $key => $value) {
+			$this->meta[$key] = $value;
+		}
 	}
 	
 	public function id() {

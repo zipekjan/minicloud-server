@@ -304,7 +304,9 @@ class DBOMetaStorage implements MetaStorage
 			
 			$skipped = array(
 				'id' => true,
-				'path' => true
+				'path' => true,
+				'versions' => true,
+				'version' => true
 			);
 			
 			$table = $this->filesTable;
@@ -441,10 +443,10 @@ class DBOMetaStorage implements MetaStorage
 	}
 	
 	private function metaSet($user, $meta) {
-		
+
 		// Check if meta object is already saved
-		if ($meta->meta('id')) {
-			
+		if ($meta->id()) {
+
 			// Only update values
 			$this->metaUpdate($user, $meta);
 			

@@ -56,7 +56,10 @@ class MetaFile
 			$this->size = $data->get('size', $this->size);
 			$this->checksum = $data->get('checksum', $this->checksum);
 			$this->versions = $data->get('versions', $this->versions);
-			$this->meta = $meta;
+			
+			foreach($meta as $key => $value) {
+				$this->meta[$key] = $value;
+			}
 		}
 		
 		// These can be updated by user
@@ -94,6 +97,7 @@ class MetaFile
 			'filename' => $this->filename,
 			'size' => $this->size,
 			'encryption' => $this->encryption,
+			'checksum' => $this->checksum,
 			'mktime' => $this->mktime,
 			'mdtime' => $this->mdtime,
 			'public' => $this->isPublic,

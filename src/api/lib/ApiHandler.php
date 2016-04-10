@@ -269,8 +269,21 @@ class ApiHandler
 		
 		$info = $request->contents();
 		
-		if ($info['public'] != 'false' && $info['public'] != '0' && ($info['public'] || $info['public'] == 'true'))
+		if (isset($info['public']) && $info['public'] != 'false' && $info['public'] != '0' && ($info['public'] || $info['public'] == 'true')) {
 			$info['public'] = 1;
+		}
+		
+		if (isset($info['path'])) {
+			$info['path'] = $this->mkPath($info['path']);
+		}
+		
+		if (isset($info['path_id'])) {
+			$info['path'] = $this->api->meta()->getPathById($this->user, $info['path_id']);
+			
+			if ($info['path'] === null) {
+				throw new ApiExcetion("Unknown path", 404);
+			}
+		}
 		
 		$file->set($info, true);
 		
@@ -425,8 +438,8 @@ class ApiHandler
 					'public' => $public,
 					'encryption' => $encryption,
 					'checksum' => $checksum
-				), true);
-				
+				));
+
 			} else {
 
 				// Create new file

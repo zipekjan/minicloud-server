@@ -13,8 +13,9 @@ class ArrayWrapper
 	}
 	
 	public function get($key, $default=null) {
-		if (isset($this->container[$key]) || array_key_exists($key, $this->container))
+		if (isset($this->container[$key]) || array_key_exists($key, $this->container)) {
 			return $this->container[$key];
+		}
 		return $default;
 	}
 }

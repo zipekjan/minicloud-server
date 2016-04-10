@@ -31,7 +31,10 @@ class MetaPath
 			$this->user = $data->get('user', $this->user);
 			$this->path = $data->get('path', $this->path);
 			$this->checksum = $data->get('checksum', $this->checksum);
-			$this->meta = $meta;
+			
+			foreach($meta as $key => $value) {
+				$this->meta[$key] = $value;
+			}
 		}
 		
 		$this->parent = $data->get('parent', $this->parent);
