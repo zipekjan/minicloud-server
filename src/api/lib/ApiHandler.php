@@ -167,6 +167,17 @@ class ApiHandler
 		return $parent;
 	}
 	
+	private function deletePathFiles($path) {
+		foreach($path->paths() as $subpath) {
+			$this->deletePathFiles($subpath);
+		}
+		
+		foreach($path->files() as $file) {
+			$this->api->meta()->deleteFile($this->user, $file);
+			$this->api->storage()->deleteFile($file);
+		}
+	}
+	
 	public function getServerInfo($request) {
 		return $this->api->getInfo();
 	}
@@ -197,22 +208,17 @@ class ApiHandler
 	public function setPath($request) {
 		// Load provided params
 		$id = $request->contents('id');
-		$path = $request->contents('path');
 		
-		if ($id === null && $path === null) {
+		if ($id === null) {
 			throw new ApiExcetion("Identification is required.", 400);
 		}
 		
 		// Normalize
 		$id = (int)$id;
 		
-		// Load file from meta
-		if ($path !== null) {
-			$path = $this->api->meta()->getPath($this->user, $path);			
-		} else {
-			$path = $this->api->meta()->getPathById($this->user, $id);
-		}
-		
+		// Load path from meta
+		$path = $this->api->meta()->getPathById($this->user, $id);
+
 		// Unknown
 		if ($path === null) {
 			throw new ApiExcetion("Uknown path.", 404);
@@ -220,6 +226,26 @@ class ApiHandler
 		
 		// Load provided params
 		$info = $request->contents();
+		
+		// Load parent meta if provided
+		if (isset($info['parent_id'])) {
+			$parent = $this->api->meta()->getPathById($this->user, (int)$info['parent_id']);
+			if ($parent === null) {
+				throw new ApiExcetion("Unknown parent.", 404);
+			}
+			$info['parent'] = $parent->id();
+		} else if (isset($info['parent'])) {
+			$parent = $this->mkPath($info['parent']);
+			if ($parent === null) {
+				throw new ApiExcetion("Unknown parent.", 404);
+			}
+			$info['parent'] = $parent->id();
+		}
+		
+		// Sanitize path
+		if (isset($info['path'])) {
+			$info['path'] = $this->sanitizePath($info['path']);
+		}
 		
 		// Apply provided params
 		$path->set($info, true);
@@ -530,10 +556,40 @@ class ApiHandler
 		return true;
 	}
 	
+	public function deletePath($request) {
+		$id = (int)$request->contents('id');
+		
+		$path = $this->api->meta()->getPathById($this->user, $id, true);
+		
+		if ($path === null) {
+			throw new ApiExcetion("Failed to find path.", 404);
+		}
+		
+		$this->deletePathFiles($path);
+		$this->api->meta()->deletePath($this->user, $path);
+		
+		return true;
+	}
+	
 	public function deletePaths($request) {
+		$paths = $request->contents('paths');
+
+		if ($paths === null || !is_array($paths)) {
+			throw new ApiExcetion("No path specified.", 400);
+		}
+		
+		foreach($paths as $id) {
+			$path = $this->api->meta()->getPathById($this->user, $id, true);
+			
+			if ($path === null) {
+				throw new ApiExcetion("Failed to find path.", 404);
+			}
+			
+			$this->deletePathFiles($path);
+			$this->api->meta()->deletePath($this->user, $path);
+		}
 	
-		throw new Exception("Not yet implemented.");
-	
+		return true;
 	}
 	
 	public function getPaths($request) {

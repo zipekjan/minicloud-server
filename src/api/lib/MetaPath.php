@@ -29,7 +29,6 @@ class MetaPath
 		if (!$restricted) {
 			$this->id = $data->get('id', $this->id);
 			$this->user = $data->get('user', $this->user);
-			$this->path = $data->get('path', $this->path);
 			$this->checksum = $data->get('checksum', $this->checksum);
 			
 			foreach($meta as $key => $value) {
@@ -37,6 +36,7 @@ class MetaPath
 			}
 		}
 		
+		$this->path = $data->get('path', $this->path);
 		$this->parent = $data->get('parent', $this->parent);
 		$this->mktime = $data->get('mktime', $this->mktime);
 		$this->mdtime = $data->get('mdtime', $this->mdtime);

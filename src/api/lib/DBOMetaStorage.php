@@ -140,8 +140,8 @@ class DBOMetaStorage implements MetaStorage
 		
 		// Load subdirectories if required
 		if ($recursive) {
-			foreach($parent->files() as $file) {
-				$this->loadChildren($file, $recursive);
+			foreach($parent->paths() as $path) {
+				$this->loadChildren($path, $recursive);
 			}
 		}
 		
@@ -249,8 +249,11 @@ class DBOMetaStorage implements MetaStorage
 		return $this->loadChildren($this->pathFromRow($user, $row), $recursive);
 	}
 	
-	public function getFile($user, $path) {
-		throw new Exception("Not yet implemented.");
+	public function deletePath($user, $path) {
+		$id = $user->id();
+		
+		$prep = $this->pdo->prepare("DELETE FROM {$this->pathsTable} WHERE user_id = ? AND id = ? LIMIT 1");
+		return $prep->execute(array($id, $path->id()));
 	}
 	
 	public function getFileById($user, $file_id, $parent = true) {
@@ -306,7 +309,8 @@ class DBOMetaStorage implements MetaStorage
 				'id' => true,
 				'path' => true,
 				'versions' => true,
-				'version' => true
+				'version' => true,
+				'user' => true
 			);
 			
 			$table = $this->filesTable;
@@ -321,7 +325,9 @@ class DBOMetaStorage implements MetaStorage
 			$skipped = array(
 				'id' => true,
 				'files' => true,
-				'paths' => true
+				'paths' => true,
+				'user' => true,
+				'parent' => true
 			);
 			
 			$table = $this->pathsTable;
@@ -363,7 +369,7 @@ class DBOMetaStorage implements MetaStorage
 			$update_values[] = $user->id();
 			$prep = $this->pdo->prepare("UPDATE $table SET " . implode(", ", $update_keys) . " WHERE id = ? AND user_id = ?");
 		}
-		
+
 		$prep->execute($update_values);
 	}
 	
