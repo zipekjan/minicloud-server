@@ -45,7 +45,10 @@ switch($action) {
 		if (!file_exists($storage_folder)) {
 			$result['storage'] = "Path doesn't exists.";
 		} else if (!is_writable($storage_folder)) {
-			$result['storage'] = "Path isn't writable.";
+			// Try to set folder writable
+			if (!chmod($storage_folder, 0770)) {
+				$result['storage'] = "Path isn't writable.";
+			}
 		}
 		
 		// Dump result
@@ -99,6 +102,9 @@ switch($action) {
 			}
 			
 		}
+		
+		// Clear database
+		$pdo->query("DELETE FROM users;");
 		
 		// Create admin user
 		$prep = $pdo->prepare("INSERT INTO users (name, password, admin) VALUES (?,SHA2(?, 256),1)");
