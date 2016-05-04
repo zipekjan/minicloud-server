@@ -2,7 +2,7 @@
 class FolderStorageFile implements ContentStorageFile
 {
 	public function __construct($path, $mode) {
-		$this->handle = fopen($path, $mode);
+		$this->handle = @fopen($path, $mode);
 		
 		if (!$this->handle)
 			throw new Exception("Failed to open file.");	

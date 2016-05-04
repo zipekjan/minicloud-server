@@ -401,6 +401,7 @@ class ApiHandler
 		$checksums = $request->contents('checksum', array());
 		$encryptions = $request->contents('encryption', array());
 		$publics = $request->contents('public', array());
+		$version = $request->contents('version', array());
 		
 		// Validate params
 		if (!is_array($replace))
@@ -437,6 +438,7 @@ class ApiHandler
 			$encryption = isset($encryptions[$ident]) ? $encryptions[$ident] : null;
 			$checksum = isset($checksums[$ident]) ? $checksums[$ident] : null;
 			$public = isset($publics[$ident]) ? $publics[$ident] : false;
+			$version = isset($version[$ident]) ? $version[$ident] : true;
 			
 			// Skip broken files
 			if ($file->error !== null) {
@@ -485,9 +487,11 @@ class ApiHandler
 			
 			// Save meta info to meta storage
 			$meta = $this->api->meta()->setFile($this->user, $meta);
-			
-			// Add new file version
-			$this->api->meta()->addFileVersion($this->user, $meta);
+
+			// Add new file version (only if required)
+			if (!$replacing || $version) {
+				$this->api->meta()->addFileVersion($this->user, $meta);
+			}
 			
 			// Load file handle from storage
 			$storage = $this->api->storage()->getFile($meta, 'wb');

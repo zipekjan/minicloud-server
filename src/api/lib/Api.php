@@ -13,9 +13,11 @@ class Api
 		$this->handler = new ApiHandler();
 	}
 	
-	protected function loadConfig($config_file) {
-		$this->configFile = $config_file;
-		$this->config = require_once($config_file);
+	protected function loadConfig($config_file = null) {
+		if ($config_file !== null) {
+			$this->configFile = $config_file;
+			$this->config = require_once($config_file);
+		}
 		
 		try {
 			$meta = new ReflectionClass($this->config('meta'));

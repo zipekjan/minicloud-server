@@ -10,17 +10,34 @@ class DBOMetaStorage implements MetaStorage
 	
 	public function __construct($api) {
 		$this->api = $api;
-		$this->pdo = new PDO(
-			$this->getDNS($this->api->config('database')),
-			$this->api->config('database')['username'],
-			$this->api->config('database')['password']
+		
+		$this->pdo = $this->getPDO($this->api->config('database'));
+	}
+	
+	protected function getPDO($config) {
+		if ($config['driver'] == 'direct') {
+			return $config['source'];
+		}
+		
+		return new PDO(
+			$this->getDNS($config),
+			$config['username'],
+			$config['password']
 		);
 	}
 	
 	protected function getDNS($config) {
-		return "{$config['driver']}:host={$config['host']}" .
-			((!empty($config['port'])) ? (';port=' . $config['port']) : '') .
-			";dbname={$config['schema']}";
+		if (isset($config['dns']))
+			return $config['dns'];
+		
+		switch($config['driver']) {
+			case "mysql":
+				return "{$config['driver']}:host={$config['host']}" .
+					((!empty($config['port'])) ? (';port=' . $config['port']) : '') .
+					";dbname={$config['schema']}";
+			case "sqlite":
+				return "{$config['driver']}:{$config['file']}";
+		}
 	}
 	
 	/**
@@ -284,7 +301,7 @@ class DBOMetaStorage implements MetaStorage
 	public function deleteFile($user, $file) {
 		$id = $user->id();
 		
-		$prep = $this->pdo->prepare("DELETE FROM {$this->filesTable} WHERE user_id = ? AND id = ? LIMIT 1");
+		$prep = $this->pdo->prepare("DELETE FROM {$this->filesTable} WHERE user_id = ? AND id = ?");
 		return $prep->execute(array($id, $file->id()));
 	}
 	
