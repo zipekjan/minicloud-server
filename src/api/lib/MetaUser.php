@@ -7,7 +7,6 @@ class MetaUser
 	protected $meta;
 	
 	protected $id;
-	protected $login;
 	protected $name;
 	protected $email;
 	protected $password;

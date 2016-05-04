@@ -1,6 +1,8 @@
 <?php
 class TestCase extends PHPUnit_Framework_TestCase {
 	
+	protected $tmp = 'tests/tmp/';
+	
 	/**
 	 * Creates testing database and returns PDO access.
 	 */
@@ -36,5 +38,15 @@ class TestCase extends PHPUnit_Framework_TestCase {
 	protected function getApi($config = array()) {
 		return new TestApi($config);
 	}
-	
+		
+	protected function tearDown() {
+		
+		// Clean tmp foler
+		$dir = opendir($this->tmp);
+		while($file = readdir($dir)) {
+			if (!is_dir($file) && $file != 'empty') {
+				unlink($this->tmp . '/' . $file);
+			}
+		}
+	}
 }

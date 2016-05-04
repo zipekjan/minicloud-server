@@ -17,5 +17,6 @@ foreach($files as $file) {
 require_once('lib/TestCase.php');
 require_once('lib/TestApi.php');
 require_once('lib/TestContentStorage.php');
+require_once('lib/TestContentStorageFile.php');
 require_once('lib/TestMetaStorage.php');
 require_once('lib/TestRequest.php');

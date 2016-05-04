@@ -49,6 +49,10 @@ class Api
 		return $this->handler->handle($this, $user, $this->request);
 	}
 	
+	public function handler() {
+		return $this->handler;
+	}
+	
 	public function meta() {
 		return $this->meta;
 	}

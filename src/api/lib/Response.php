@@ -37,6 +37,13 @@ class Response
 	}
 	
 	/**
+	 * Returns response contents
+	 */
+	public function getContents() {
+		return $this->contents;
+	}
+	
+	/**
 	 * Assigns header values and prints the response contents
 	 */
 	public function execute() {

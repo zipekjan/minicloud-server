@@ -1,13 +1,11 @@
 <?php
 class ContentStorageTest extends TestCase
 {
-	protected $folder = 'tests/tmp';
-	
 	protected function getApi() {
 		return parent::getApi(array(
 			'meta' => 'TestMetaStorage',
 			'storage' => 'FolderStorage',
-			'storage_folder' => $this->folder
+			'storage_folder' => $this->tmp
 		));
 	}
 	
@@ -84,14 +82,5 @@ class ContentStorageTest extends TestCase
 		
 		$this->setExpectedException('Exception');
 		$api->storage()->getFile($file, 'rb');
-	}
-	
-	protected function tearDown() {
-		$dir = opendir($this->folder);
-		while($file = readdir($dir)) {
-			if (!is_dir($file) && $file != 'empty') {
-				unlink($this->folder . '/' . $file);
-			}
-		}
 	}
 }

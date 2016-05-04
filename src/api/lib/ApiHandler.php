@@ -417,7 +417,6 @@ class ApiHandler
 			$publics = array();
 		
 		// Load metapath object
-		//$path = $this->api->meta()->getPath($this->user, $path);
 		$path = $this->mkPath($path);
 		
 		// Failed to find path in meta
