@@ -168,8 +168,11 @@ class DBOMetaStorage implements MetaStorage
 	
 	public function getUser($hash) {
 
-		$prep = $this->pdo->prepare("SELECT * FROM {$this->usersTable} WHERE SHA2(CONCAT(name, password), 256) = ?");
-		$prep->execute(array($hash));
+		$name = substr($hash, 0, strpos($hash, ':'));
+		$hash = substr($hash, strpos($hash, ':') + 1);
+	
+		$prep = $this->pdo->prepare("SELECT * FROM {$this->usersTable} WHERE name = ? AND password = ?");
+		$prep->execute(array($name, $hash));
 		
 		$data = $prep->fetch();
 		if ($data) {
