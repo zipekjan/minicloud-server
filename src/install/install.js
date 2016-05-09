@@ -9,9 +9,11 @@ window.onload = function() {
 	var valid = false;
 	
 	var help = {
+		
 		storage_folder: "Path to folder where all files will be stored. Target path must be writable.",
 		server_nice_url: "Enable if your server supports mod_rewrite.",
 		server_size: "Maximum size of single file uploaded to server. This size is determined by your server settings. Google 'php upload size' for more informations."
+		
 	}
 	
 	var inputs = {
@@ -27,7 +29,8 @@ window.onload = function() {
 		admin_pass: null,
 		
 		server_name: null,
-		server_desc: null
+		server_desc: null,
+		server_nice_url: null
 		
 	}
 	

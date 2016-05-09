@@ -75,6 +75,7 @@ switch($action) {
 		
 		$server_name = $_POST['server_name'];
 		$server_desc = $_POST['server_desc'];
+		$server_nice_url = $_POST['server_nice_url'];
 		
 		// Connect to server
 		try {
@@ -133,7 +134,7 @@ switch($action) {
 			'SERVER_NAME' => $server_name,
 			'SERVER_DESCRIPTION' => $server_desc,
 			'SERVER_LOGO' => 'null',
-			'NICE_URL' => 'false',
+			'NICE_URL' => $server_nice_url ? "true" : "false",
 			'STORAGE_FOLDER' => $storage_folder,
 			'DB_HOST' => $db_host,
 			'DB_NAME' => $db_name,
