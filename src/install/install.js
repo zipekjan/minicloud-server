@@ -8,6 +8,12 @@ window.onload = function() {
 	
 	var valid = false;
 	
+	var help = {
+		storage_folder: "Path to folder where all files will be stored. Target path must be writable.",
+		server_nice_url: "Enable if your server supports mod_rewrite.",
+		server_size: "Maximum size of single file uploaded to server. This size is determined by your server settings. Google 'php upload size' for more informations."
+	}
+	
 	var inputs = {
 		
 		db_host: null,
@@ -116,5 +122,18 @@ window.onload = function() {
 	
 	id('validate').onclick = function() { validate(); }
 	id('save').onclick = function() { install(); }
+	
+	for(var i in help) {
+		
+		var element = id(i);
+		var value = help[i];
+		var span = document.createElement('span');
+		
+		span.className = 'help';
+		span.innerHTML = '<span>' + value + '</span>';
+		
+		element.parentNode.parentNode.insertBefore(span, element.parentNode.nextSibling);
+		
+	}
 	
 }
