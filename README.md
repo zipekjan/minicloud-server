@@ -21,3 +21,9 @@ You can either find distribution package of client at [our website](http://minic
 PHP 5+
 
 PDO compatible SQL server (Only MySQL is supported by installation)
+
+## License
+
+This software is available under the following licenses:
+
+ - MIT
