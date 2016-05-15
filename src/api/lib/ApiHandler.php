@@ -264,9 +264,9 @@ class ApiHandler
 		
 		// Load metapath object
 		if ($id !== null) {
-			$path = $this->api->meta()->getPathById($this->user, $id);
+			$path = $this->api->meta()->getPathById($this->user, $id, $recursive);
 		} else {
-			$path = $this->api->meta()->getPath($this->user, $path);
+			$path = $this->api->meta()->getPath($this->user, $path, $recursive);
 		}
 		
 		// Failed to find path in meta
