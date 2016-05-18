@@ -98,3 +98,9 @@ xcopy($install, $dist);
 
 // Copy htaccess
 copy($htaccess, "$dist/.htaccess");
+
+// Make files dir
+@mkdir("$dist/files");
+
+// Put in restrict file
+file_put_contents("$dist/files/.htaccess", "Deny from all");
