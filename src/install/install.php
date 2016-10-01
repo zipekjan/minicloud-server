@@ -69,7 +69,7 @@ $max_size = file_upload_max_size();
 					</div>
 					<div class="input">
 						<label for="db_name">Database:</label>
-						<input type="text" name="db_name" id="db_name" value="mc-test" />
+						<input type="text" name="db_name" id="db_name" value="minicloud" />
 					</div>
 					<div class="input">
 						<label for="db_user">User:</label>
