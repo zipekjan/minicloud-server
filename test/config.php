@@ -10,6 +10,7 @@ return array(
 	'nice_url' => true,
 	
 	'storage_folder' => 'files/',
+	'salt' => 'asdjfhkfasf3a54dfasdf',
 	
 	'database' => array(
 		'driver' => 'mysql',
