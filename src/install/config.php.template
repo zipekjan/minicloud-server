@@ -10,6 +10,7 @@ return array(
 	'nice_url' => $NICE_URL$,
 	
 	'storage_folder' => '$STORAGE_FOLDER$',
+	'salt' => '$SALT$',
 	
 	'database' => array(
 		'driver' => 'mysql',

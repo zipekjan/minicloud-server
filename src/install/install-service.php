@@ -77,6 +77,14 @@ switch($action) {
 		$server_desc = $_POST['server_desc'];
 		$server_nice_url = $_POST['server_nice_url'];
 		
+		$salt = "";
+    
+		// Build random salt
+		$characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+		for ($i = 0; $i < 128; $i++) {
+			$salt .= $characters[mt_rand(0, strlen($characters) - 1)];
+		}
+		
 		// Connect to server
 		try {
 			$pdo = new PDO(
@@ -109,7 +117,7 @@ switch($action) {
 		
 		// Create admin user
 		$prep = $pdo->prepare("INSERT INTO users (name, password, admin) VALUES (?,SHA2(?, 256),1)");
-		if (!$prep->execute(array($admin_user, $admin_pass))) {
+		if (!$prep->execute(array($admin_user, $salt . $admin_pass))) {
 			die(json_encode(array(
 				'install' => 'SQL Failed: ' . print_r($prep->errorInfo(), true)
 			)));
@@ -139,7 +147,8 @@ switch($action) {
 			'DB_HOST' => $db_host,
 			'DB_NAME' => $db_name,
 			'DB_USER' => $db_user,
-			'DB_PASS' => $db_pass
+			'DB_PASS' => $db_pass,
+			'SALT' => $salt
 		);
 		
 		// Replace values in template

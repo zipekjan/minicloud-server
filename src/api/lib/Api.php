@@ -1,6 +1,8 @@
 <?php
 class Api
 {
+	const VERSION = "1.1";
+	
 	protected $configFile = null;
 	protected $config = array();
 	protected $handler = null;
@@ -67,7 +69,9 @@ class Api
 			'description' => $this->config('description'),
 			'logo' => $this->config('logo'),
 			'nice_url' => $this->config('nice_url'),
-			'time' => time()
+			'time' => time(),
+			'salt' => $this->config('salt'),
+			'version' => Api::VERSION
 		);
 	}
 }

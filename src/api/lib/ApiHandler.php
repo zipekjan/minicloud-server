@@ -13,7 +13,7 @@ class ApiHandler
 	public function __construct() {
 		// Action => method map
 		$this->actions = array(
-			'get_server_info' => new ApiHandlerAction('getServerInfo', 'server'),
+			'get_server_info' => new ApiHandlerAction('getServerInfo', 'server', true),
 			
 			'get_user' => new ApiHandlerAction('getUserInfo', 'user'),
 			'set_user' => new ApiHandlerAction('setUserInfo', 'user'),
